@@ -8,14 +8,19 @@ public class Member {
     private String name;
     private String NIM;
     private String contactInfo;
+    private String password; // Tambahan untuk menyimpan password
     private final List<String> borrowedItems; // Untuk menyimpan daftar barang yang dipinjam.
 
+    // Static list untuk menyimpan semua data member yang terdaftar
+    private static final List<Member> registeredMembers = new ArrayList<>();
+
     // Constructor
-    public Member(String id, String name, String NIM, String contactInfo) {
+    public Member(String id, String name, String NIM, String contactInfo, String password) {
         this.id = id;
         this.name = name;
         this.NIM = NIM;
         this.contactInfo = contactInfo;
+        this.password = password;
         this.borrowedItems = new ArrayList<>();
     }
 
@@ -52,9 +57,30 @@ public class Member {
         this.contactInfo = contactInfo;
     }
 
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
     // Method untuk mendaftarkan anggota
     public void register() {
+        registeredMembers.add(this); // Menyimpan data member ke dalam daftar
         System.out.println("Anggota dengan ID: " + id + " dan nama: " + name + " telah berhasil terdaftar.");
+    }
+
+    // Method untuk login
+    public static Member login(String id, String password) {
+        for (Member member : registeredMembers) {
+            if (member.getId().equals(id) && member.getPassword().equals(password)) {
+                System.out.println("Login berhasil. Selamat datang, " + member.getName() + "!");
+                return member; // Mengembalikan objek Member yang berhasil login
+            }
+        }
+        System.out.println("Login gagal. ID atau password salah.");
+        return null; // Mengembalikan null jika login gagal
     }
 
     // Method untuk menambahkan item ke daftar pinjaman
@@ -73,18 +99,5 @@ public class Member {
                 System.out.println("- " + item);
             }
         }
-    }
-
-    // Main method untuk uji coba
-    public static void main(String[] args) {
-        Member member1 = new Member("001", "Ali", "12345678", "ali@example.com");
-        member1.register();
-        member1.borrowItem("Laptop");
-        member1.borrowItem("Proyektor");
-        member1.viewBorrowedItems();
-    }
-
-    public Object getPassword() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 }

@@ -73,22 +73,4 @@ public class Transaction {
         System.out.println("Denda keterlambatan: Rp " + lateFee);
         return lateFee;
     }
-
-    // Main method untuk uji coba
-    public static void main(String[] args) {
-        // Membuat contoh barang dan anggota
-        Inventory laptop = Inventory.addItem(101, "Laptop", 3, "Laptop untuk kerja");
-        Member member1 = new Member("001", "Ali", "12345678", "ali@example.com");
-        member1.register();
-
-        // Membuat transaksi peminjaman
-        Transaction transaction1 = new Transaction(1001, laptop, member1);
-        transaction1.borrowItem();
-
-        // Simulasi pengembalian barang
-        transaction1.returnItem();
-
-        // Menghitung denda (ubah tanggal pengembalian untuk menguji denda)
-        transaction1.calculateLateFee();
-    }
 }
