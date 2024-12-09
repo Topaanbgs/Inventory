@@ -4,11 +4,22 @@
  */
 package View;
 
+import Model.Member;
+
 /**
  *
  * @author USER
  */
 public class DashboardForm extends javax.swing.JFrame {
+    private Member currentMember;
+        public DashboardForm(Member member) {
+        initComponents();
+        this.currentMember = member; // Set member yang login
+        updateWelcomeMessage(); // Update pesan selamat datang dengan nama member
+    }
+        private void updateWelcomeMessage() {
+        jLabel1.setText("Selamat Datang, " + currentMember.getName());
+    }
 
     /**
      * Creates new form DashboardMemberForm
@@ -16,7 +27,6 @@ public class DashboardForm extends javax.swing.JFrame {
     public DashboardForm() {
         initComponents();
     }
-
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -61,6 +71,11 @@ public class DashboardForm extends javax.swing.JFrame {
         );
 
         jButton4.setText("Logout");
+        jButton4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton4ActionPerformed(evt);
+            }
+        });
 
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -151,6 +166,12 @@ public class DashboardForm extends javax.swing.JFrame {
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_jButton3ActionPerformed
+
+    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
+        // Logout
+        new LoginForm().setVisible(true); // Menampilkan LoginForm
+        this.dispose(); // Menutup DashboardForm
+    }//GEN-LAST:event_jButton4ActionPerformed
 
     /**
      * @param args the command line arguments
