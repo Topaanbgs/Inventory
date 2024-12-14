@@ -184,7 +184,7 @@ public class LoginForm extends javax.swing.JFrame {
         if (isValid) {
             JOptionPane.showMessageDialog(this, "Login Berhasil!");
 
-            DashboardForm dashboard = new DashboardForm(loggedInMember);
+            PeminjamanForm dashboard = new PeminjamanForm(loggedInMember);
             dashboard.setVisible(true);
             this.dispose();
         } else {

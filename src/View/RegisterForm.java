@@ -58,17 +58,17 @@ public class RegisterForm extends javax.swing.JFrame {
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(150, 150, 150)
                 .addComponent(jLabel1)
-                .addGap(144, 144, 144))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addGap(17, 17, 17)
                 .addComponent(jLabel1)
-                .addContainerGap(17, Short.MAX_VALUE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         jTextField1.addActionListener(new java.awt.event.ActionListener() {
@@ -152,7 +152,7 @@ public class RegisterForm extends javax.swing.JFrame {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGap(23, 23, 23)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel3))
@@ -190,25 +190,21 @@ public class RegisterForm extends javax.swing.JFrame {
         String contact = jTextField3.getText();
         String password = new String(jPasswordField1.getPassword());
         
-        // Periksa apakah ada data yang kosong
         if (name.isEmpty() || nim.isEmpty() || contact.isEmpty() || password.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Semua field harus diisi!", "Error", JOptionPane.ERROR_MESSAGE);
         } else {
-            // Buat objek Member dan simpan
             Member newMember = new Member(name, nim, contact, password);
             members.add(newMember);
             
             JOptionPane.showMessageDialog(this, "Pendaftaran berhasil!\nID Anda: " + newMember.getId());
             
-            // Reset form setelah pendaftaran berhasil
             jTextField1.setText("");
             jTextField2.setText("");
             jTextField3.setText("");
             jPasswordField1.setText("");
             
-            // Kembali ke Login Form
-            new LoginForm().setVisible(true); // Menampilkan LoginForm
-            this.dispose(); // Menutup RegisterForm
+            new LoginForm().setVisible(true);
+            this.dispose();
         }
     }//GEN-LAST:event_jButton2ActionPerformed
 
@@ -222,7 +218,7 @@ public class RegisterForm extends javax.swing.JFrame {
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         new LoginForm().setVisible(true);
-        this.dispose(); // Menutup RegisterForm
+        this.dispose();
     }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
