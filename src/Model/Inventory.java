@@ -18,7 +18,6 @@ public class Inventory {
         inventory.put("Memory Card 16gb", "ID008");
     }
 
-    // Method untuk mendapatkan ID Barang berdasarkan Nama Barang
     public static String getIdByName(String namaBarang) {
         return inventory.getOrDefault(namaBarang, "ID_UNKNOWN");
     }

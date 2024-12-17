@@ -6,7 +6,10 @@ package View;
 
 import Model.Inventory;
 import Model.Member;
+import Model.Transaksi;
+import java.awt.HeadlessException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
@@ -18,6 +21,7 @@ import javax.swing.table.DefaultTableModel;
 public class PeminjamanForm extends javax.swing.JFrame {
     private Member currentMember;
         public PeminjamanForm(Member member) {
+        this.daftarTransaksi = new ArrayList<>();
         initComponents();
         this.currentMember = member;
         updateWelcomeMessage();
@@ -25,11 +29,15 @@ public class PeminjamanForm extends javax.swing.JFrame {
         private void updateWelcomeMessage() {
         jLabel1.setText("Selamat Datang, " + currentMember.getName());
     }
+        private final ArrayList<Transaksi> daftarTransaksi;
+        private int idCounter = 1;
+        private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
     /**
      * Creates new form DashboardMemberForm
      */
     public PeminjamanForm() {
+        this.daftarTransaksi = new ArrayList<>();
         initComponents();
     }
     /**
@@ -252,31 +260,51 @@ public class PeminjamanForm extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton4ActionPerformed
 
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
-Date tanggalPinjam = jDateChooser1.getDate();
+    Date tanggalPinjam = jDateChooser1.getDate();
     Date tanggalKembali = jDateChooser2.getDate();
     String namaBarang = (String) jComboBox1.getSelectedItem();
 
-    // Validasi input
     if (tanggalPinjam == null || tanggalKembali == null || namaBarang.equals("Pilihan Barang")) {
         JOptionPane.showMessageDialog(this, "Harap lengkapi semua inputan!", "Error", JOptionPane.ERROR_MESSAGE);
         return;
     }
 
-    // Konversi tanggal ke String
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
     String tanggalPinjamStr = sdf.format(tanggalPinjam);
     String tanggalKembaliStr = sdf.format(tanggalKembali);
 
-    // Dapatkan ID Barang dari Inventory
     String idBarang = Inventory.getIdByName(namaBarang);
 
-    // Tambahkan data ke tabel
     DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
     model.addRow(new Object[]{tanggalPinjamStr, tanggalKembaliStr, idBarang, namaBarang});
     }//GEN-LAST:event_jButton5ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-        // TODO add your handling code here:
+        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+
+    if (model.getRowCount() == 0) {
+        JOptionPane.showMessageDialog(this, "Table kosong, tambahkan data terlebih dahulu!", "Error", JOptionPane.ERROR_MESSAGE);
+        return;
+    }
+    
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    for (int i = 0; i < model.getRowCount(); i++) {
+        String idTransaksi = "TRX-" + String.format("%03d", idCounter++);
+        String tanggalPinjam = (String) model.getValueAt(i, 0);
+        String tanggalKembali = (String) model.getValueAt(i, 1);
+        String idBarang = (String) model.getValueAt(i, 2);
+        String namaBarang = (String) model.getValueAt(i, 3);
+
+        Transaksi transaksi = new Transaksi(idTransaksi, currentMember.getName(), 
+                                            tanggalPinjam, tanggalKembali, namaBarang);
+        daftarTransaksi.add(transaksi);
+    }
+
+    JOptionPane.showMessageDialog(this, "Transaksi berhasil dikonfirmasi!");
+
+    InvoicePeminjamanForm invoice = new InvoicePeminjamanForm(daftarTransaksi);
+        invoice.setVisible(true);
+        this.dispose();
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
@@ -329,13 +357,7 @@ Date tanggalPinjam = jDateChooser1.getDate();
             java.util.logging.Logger.getLogger(PeminjamanForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
+
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> {
