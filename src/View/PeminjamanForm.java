@@ -26,6 +26,10 @@ public class PeminjamanForm extends javax.swing.JFrame {
         this.currentMember = member;
         updateWelcomeMessage();
     }
+
+    PeminjamanForm(String nim) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
         private void updateWelcomeMessage() {
         jLabel1.setText("Selamat Datang, " + currentMember.getName());
     }
@@ -36,7 +40,7 @@ public class PeminjamanForm extends javax.swing.JFrame {
     /**
      * Creates new form DashboardMemberForm
      */
-    public PeminjamanForm() {
+    public PeminjamanForm(int memberID) {
         this.daftarTransaksi = new ArrayList<>();
         initComponents();
     }
@@ -358,10 +362,9 @@ public class PeminjamanForm extends javax.swing.JFrame {
         }
         //</editor-fold>
 
-
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> {
-            new PeminjamanForm().setVisible(true);
+            new PeminjamanForm(memberID).setVisible(true);
         });
     }
 

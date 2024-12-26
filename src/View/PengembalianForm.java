@@ -185,7 +185,7 @@ public class PengembalianForm extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton3ActionPerformed
 
     private void jButton7ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton7ActionPerformed
-    new PeminjamanForm().setVisible(true);
+    new PeminjamanForm(memberID).setVisible(true);
         this.dispose();
     }//GEN-LAST:event_jButton7ActionPerformed
 

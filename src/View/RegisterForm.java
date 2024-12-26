@@ -4,8 +4,14 @@
  */
 package View;
 
+import Controller.DatabaseConnection;
 import Model.Member;
-import java.util.ArrayList;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 
 /**
@@ -13,8 +19,6 @@ import javax.swing.JOptionPane;
  * @author User
  */
 public class RegisterForm extends javax.swing.JFrame {
-
-    static final ArrayList<Member> members = new ArrayList<>();
     /**
      * Creates new form RegisterForm
      */
@@ -185,27 +189,52 @@ public class RegisterForm extends javax.swing.JFrame {
     }//GEN-LAST:event_jTextField1ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-        String name = jTextField1.getText();
-        String nim = jTextField2.getText();
-        String contact = jTextField3.getText();
-        String password = new String(jPasswordField1.getPassword());
-        
-        if (name.isEmpty() || nim.isEmpty() || contact.isEmpty() || password.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Semua field harus diisi!", "Error", JOptionPane.ERROR_MESSAGE);
-        } else {
+    String name = jTextField1.getText();
+    String nim = jTextField2.getText();
+    String contact = jTextField3.getText();
+    String password = new String(jPasswordField1.getPassword());
+
+    // Validasi input kosong
+    if (name.isEmpty() || nim.isEmpty() || contact.isEmpty() || password.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Semua field harus diisi!", "Error", JOptionPane.ERROR_MESSAGE);
+    } else {
+        try {
+            Connection connection = (Connection) DatabaseConnection.getConnection();
+            String checkNimQuery = "SELECT * FROM member WHERE nim = ?";
+            
+            // Validasi unik NIM
+            try (PreparedStatement statement = connection.prepareStatement(checkNimQuery)) {
+                statement.setString(1, nim);
+                ResultSet resultSet = statement.executeQuery();
+                if (resultSet.next()) {
+                    JOptionPane.showMessageDialog(this, "NIM sudah terdaftar!", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+
+            // Membuat objek Member baru dan menyimpan ke database
             Member newMember = new Member(name, nim, contact, password);
-            members.add(newMember);
-            
-            JOptionPane.showMessageDialog(this, "Pendaftaran berhasil!\nID Anda: " + newMember.getId());
-            
-            jTextField1.setText("");
-            jTextField2.setText("");
-            jTextField3.setText("");
-            jPasswordField1.setText("");
-            
-            new LoginForm().setVisible(true);
-            this.dispose();
+            boolean success = Member.register(newMember);
+            if (success) {
+                JOptionPane.showMessageDialog(this, "Pendaftaran berhasil!\nID Anda: " + newMember.getMemberID());
+
+                // Reset field input
+                jTextField1.setText("");
+                jTextField2.setText("");
+                jTextField3.setText("");
+                jPasswordField1.setText("");
+
+                // Pindah ke form Login
+                new LoginForm().setVisible(true);
+                this.dispose();
+            } else {
+                JOptionPane.showMessageDialog(this, "Pendaftaran gagal. Coba lagi nanti!", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(RegisterForm.class.getName()).log(Level.SEVERE, null, ex);
+            JOptionPane.showMessageDialog(this, "Terjadi kesalahan pada database!", "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void jTextField2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField2ActionPerformed

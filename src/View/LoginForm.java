@@ -5,7 +5,10 @@
 package View;
 
 import Model.Member;
-import java.util.ArrayList;
+import View.PeminjamanForm;
+import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 
 /**
@@ -13,7 +16,6 @@ import javax.swing.JOptionPane;
  * @author USER
  */
 public class LoginForm extends javax.swing.JFrame {
-    private static ArrayList<Member> members = RegisterForm.members;
 
     /**
      * Creates new form LoginForm
@@ -168,28 +170,27 @@ public class LoginForm extends javax.swing.JFrame {
     }//GEN-LAST:event_jPasswordField1ActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-    String memberId = jTextField1.getText();
-        String password = new String(jPasswordField1.getPassword());
+ try {
+        int memberID = Integer.parseInt(jTextField1.getText()); // Mengambil memberID
+        String password = new String(jPasswordField1.getPassword()); // Mengambil password
 
-        boolean isValid = false;
-        Member loggedInMember = null;
-        for (Member member : members) {
-            if (member.getId().equals(memberId) && member.getPassword().equals(password)) {
-                isValid = true;
-                loggedInMember = member;
-                break;
-            }
-        }
+        boolean isValid = Member.login(memberID, password);
 
         if (isValid) {
             JOptionPane.showMessageDialog(this, "Login Berhasil!");
 
-            PeminjamanForm dashboard = new PeminjamanForm(loggedInMember);
+            // Menampilkan dashboard atau form lain setelah login berhasil
+            PeminjamanForm dashboard = new PeminjamanForm(memberID);
             dashboard.setVisible(true);
             this.dispose();
         } else {
             JOptionPane.showMessageDialog(this, "ID atau Password Salah!", "Error", JOptionPane.ERROR_MESSAGE);
         }
+    } catch (NumberFormatException e) {
+    } catch (SQLException e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Terjadi Kesalahan dalam proses login!", "Error", JOptionPane.ERROR_MESSAGE);
+    }
     }//GEN-LAST:event_jButton1ActionPerformed
    public static void main(String args[]) {
         /* Set the Nimbus look and feel */
