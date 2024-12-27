@@ -8,6 +8,7 @@ import Model.Transaksi;
 import Controller.DatabaseConnection;
 import java.sql.*;
 import java.util.ArrayList;
+import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
 /**
@@ -15,61 +16,56 @@ import javax.swing.table.DefaultTableModel;
  * @author USER
  */
 public class InvoicePeminjamanForm extends javax.swing.JFrame {
-    private String memberID;
+    private ArrayList<Transaksi> transaksiList;
+    private String idMember;
+    private String namaMember;
 
     public InvoicePeminjamanForm(ArrayList<Transaksi> transaksi) {
         initComponents();
-        this.memberID = memberID;
+        this.idMember = idMember;  // ID Member yang sedang login
+        this.namaMember = namaMember;  // Nama Member yang sedang login
+        this.transaksiList = new ArrayList<>();
         tampilkanData();
     }
 
-private ArrayList<Transaksi> getTransaksiByMemberId(String memberID) {
-        ArrayList<Transaksi> transaksiList = new ArrayList<>();
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            String query = "SELECT t.id_transaksi, t.member_id, t.id_barang, t.tanggal_pinjam, t.tanggal_kembali, t.status, b.nama_barang, m.nama_member " +
-                           "FROM transaksi t " +
-                           "JOIN barang b ON t.id_barang = b.id_barang " +
-                           "JOIN member m ON t.member_id = m.id_member " +
-                           "WHERE t.member_id = ?";
-            try (PreparedStatement stmt = conn.prepareStatement(query)) {
-                stmt.setString(1, memberID);
-                ResultSet rs = stmt.executeQuery();
-
-                while (rs.next()) {
-                    Transaksi trx = new Transaksi(
-                        rs.getString("member_id"),
-                        rs.getString("id_barang"),
-                        rs.getDate("tanggal_pinjam"),
-                        rs.getDate("tanggal_kembali"),
-                        rs.getString("status")
-                    );
-                    trx.setIdTransaksi(rs.getString("id_transaksi"));
-                    // Tidak perlu menggunakan setter untuk nama barang dan nama member
-                    transaksiList.add(trx);  // Menambahkan objek Transaksi ke dalam list
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return transaksiList;
-    }
-
     private void tampilkanData() {
-        // Ambil data transaksi berdasarkan memberID
-        ArrayList<Transaksi> daftarTransaksi = getTransaksiByMemberId(memberID);
-
         DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
         model.setRowCount(0); // Hapus semua baris sebelumnya
 
-        // Masukkan data transaksi ke dalam tabel
-        for (Transaksi trx : daftarTransaksi) {
-            model.addRow(new Object[]{
-                trx.getIdTransaksi(),      // Menampilkan ID Transaksi
-                trx.getNamaMember(),       // Menggunakan getter untuk nama member
-                trx.getTanggalPinjam(),    // Menampilkan tanggal pinjam
-                trx.getTanggalKembali(),   // Menampilkan tanggal kembali
-                trx.getNamaBarang()        // Menggunakan getter untuk nama barang
-            });
+        // Ambil data transaksi berdasarkan member yang sedang login
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String query = "SELECT * FROM transaksi WHERE member_id = ? AND status = 'pinjam'";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, idMember);
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                // Ambil informasi transaksi dari tabel transaksi
+                String idTransaksi = rs.getString("id_transaksi");
+                Date tglPinjam = rs.getDate("tanggal_pinjam");
+                Date tglKembali = rs.getDate("tanggal_kembali");
+                String idBarang = rs.getString("id_barang");
+                String status = rs.getString("status");
+
+                Transaksi transaksi = new Transaksi(
+                idMember, 
+                idBarang,
+                new java.util.Date(tglPinjam.getTime()),
+                new java.util.Date(tglKembali.getTime()),
+                status
+                );
+                // Menambahkan data transaksi ke dalam tabel
+                model.addRow(new Object[]{
+                    idTransaksi,               // ID Transaksi
+                    transaksi.getNamaMember(), // Nama Member
+                    new java.text.SimpleDateFormat("dd-MM-yyyy").format(tglPinjam), // Tanggal Pinjam
+                    new java.text.SimpleDateFormat("dd-MM-yyyy").format(tglKembali), // Tanggal Kembali
+                    transaksi.getNamaBarang()  // Nama Barang
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Terjadi kesalahan dalam mengambil data.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -179,7 +175,22 @@ private ArrayList<Transaksi> getTransaksiByMemberId(String memberID) {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
-    this.dispose();
+    try (Connection conn = DatabaseConnection.getConnection()) {
+            String query = "UPDATE transaksi SET status = 'selesai' WHERE member_id = ? AND status = 'pinjam'";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, idMember);
+            int rowsUpdated = stmt.executeUpdate();
+
+            if (rowsUpdated > 0) {
+                JOptionPane.showMessageDialog(this, "Transaksi berhasil dikonfirmasi!", "Konfirmasi", JOptionPane.INFORMATION_MESSAGE);
+                this.dispose();  // Menutup form setelah konfirmasi
+            } else {
+                JOptionPane.showMessageDialog(this, "Tidak ada transaksi yang perlu dikonfirmasi.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Terjadi kesalahan dalam konfirmasi transaksi.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }//GEN-LAST:event_jButton4ActionPerformed
 
     /**

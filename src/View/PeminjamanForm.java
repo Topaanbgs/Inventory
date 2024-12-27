@@ -7,10 +7,12 @@ package View;
 import Model.Member;
 import Controller.DatabaseConnection;
 import static Model.Member.getLoggedInMember;
+import Model.Transaksi;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.sql.*;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 
 /**
  *
@@ -285,68 +287,85 @@ public class PeminjamanForm extends javax.swing.JFrame {
         saveTransactions(model);
     }
 
- private void saveTransactions(DefaultTableModel model) {
-    // Mengambil tanggal sekali sebelum loop
-    java.util.Date tanggalPinjamUtil = jDateChooser1.getDate();
-    java.util.Date tanggalKembaliUtil = jDateChooser2.getDate();
+private void saveTransactions(DefaultTableModel model) {
+        java.util.Date tanggalPinjamUtil = jDateChooser1.getDate();
+        java.util.Date tanggalKembaliUtil = jDateChooser2.getDate();
 
-    // Validasi tanggal
-    if (tanggalPinjamUtil == null || tanggalKembaliUtil == null) {
-        JOptionPane.showMessageDialog(this, "Tanggal pinjam atau pengembalian tidak boleh kosong!", "Error", JOptionPane.ERROR_MESSAGE);
-        return;
-    }
-
-    // Convert to java.sql.Date hanya sekali
-    java.sql.Date tanggalPinjam = new java.sql.Date(tanggalPinjamUtil.getTime());
-    java.sql.Date tanggalKembali = new java.sql.Date(tanggalKembaliUtil.getTime());
-
-    try (Connection connection = DatabaseConnection.getConnection()) {
-        String query = "INSERT INTO transaksi (memberID, tanggal_pinjam, tanggal_kembali, nama_barang) VALUES (?, ?, ?, ?)";
-        
-        // Menyiapkan statement di luar loop
-        PreparedStatement statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-
-        // Iterasi setiap row dalam tabel untuk menyimpan transaksi
-        for (int i = 0; i < model.getRowCount(); i++) {
-            String namaBarang = (String) model.getValueAt(i, 2);
-
-            // Validasi nama barang
-            if (namaBarang == null || namaBarang.isEmpty() || namaBarang.equals("Pilihan Barang")) {
-                JOptionPane.showMessageDialog(this, "Nama barang tidak boleh kosong atau tidak valid!", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            // Mengisi prepared statement
-            statement.setInt(1, currentMember.getMemberID());
-            statement.setDate(2, tanggalPinjam);
-            statement.setDate(3, tanggalKembali);
-            statement.setString(4, namaBarang);
-
-            // Eksekusi statement
-            statement.executeUpdate();
-
-            // Mendapatkan ID transaksi yang di-generate
-            ResultSet generatedKeys = statement.getGeneratedKeys();
-            if (generatedKeys.next()) {
-                int generatedTransactionId = generatedKeys.getInt(1);
-                // Tampilkan ID transaksi pada kolom InvoicePeminjamanForm (atau proses lebih lanjut)
-                System.out.println("Transaksi ID: " + generatedTransactionId);
-            }
+        // Validasi tanggal
+        if (tanggalPinjamUtil == null || tanggalKembaliUtil == null) {
+            JOptionPane.showMessageDialog(this, "Tanggal pinjam atau pengembalian tidak boleh kosong!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
         }
 
-        // Berhasil menyimpan transaksi
-        JOptionPane.showMessageDialog(this, "Transaksi berhasil dikonfirmasi!");
-        model.setRowCount(0);  // Clear table after success
+        // Convert to java.sql.Date
+        java.sql.Date tanggalPinjam = new java.sql.Date(tanggalPinjamUtil.getTime());
+        java.sql.Date tanggalKembali = new java.sql.Date(tanggalKembaliUtil.getTime());
 
-    } catch (SQLException e) {
-        JOptionPane.showMessageDialog(this, "Gagal menyimpan transaksi: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-        // Untuk debugging lebih lanjut
+        try (Connection connection = DatabaseConnection.getConnection()) {
+    String query = "INSERT INTO transaksi (id_member, id_barang, tgl_peminjaman, tgl_pengembalian, status) VALUES (?, ?, ?, ?, ?)";
+
+    PreparedStatement statement = connection.prepareStatement(query);
+
+    // Iterasi setiap row dalam tabel untuk menyimpan transaksi
+    for (int i = 0; i < model.getRowCount(); i++) {
+        String namaBarang = (String) model.getValueAt(i, 2);
+
+        // Cari id_barang berdasarkan nama_barang
+        String idBarang = getBarangIDByName(namaBarang);
+
+        if (idBarang == null) {
+            JOptionPane.showMessageDialog(this, "Nama barang tidak valid!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+// Misalkan currentMember.getMemberID() mengembalikan int, maka kita ubah menjadi String
+String memberId = String.valueOf(currentMember.getMemberID());
+String barangId = String.valueOf(idBarang); // Ubah idBarang menjadi String jika perlu
+
+// Membuat objek Transaksi
+Transaksi transaksiBaru = new Transaksi(
+    memberId,        // Member ID sebagai String
+    barangId,        // Barang ID sebagai String
+    tanggalPinjam,   // Tanggal pinjam
+    tanggalKembali,  // Tanggal kembali
+    "Menunggu Konfirmasi"  // Status transaksi
+);
+        // Menambahkan transaksi ke database
+        Transaksi.addTransaksi(transaksiBaru);
+
+        // Tampilkan invoice untuk transaksi
+        ArrayList<Transaksi> transaksiList = new ArrayList<>();
+        transaksiList.add(transaksiBaru);
+        new InvoicePeminjamanForm(transaksiList).setVisible(true);
     }
+
+    JOptionPane.showMessageDialog(this, "Transaksi berhasil dikonfirmasi!");
+    model.setRowCount(0);  // Clear table after success
+
+    this.dispose();  // Close the current form
+
+} catch (SQLException e) {
+    JOptionPane.showMessageDialog(this, "Gagal menyimpan transaksi: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+    }
+}
+    private String getBarangIDByName(String namaBarang) {
+    try (Connection conn = DatabaseConnection.getConnection()) {
+        String query = "SELECT inventoryid FROM inventory WHERE nama_barang = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, namaBarang);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("inventoryid");
+            }
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+    return null; // Mengembalikan null jika barang tidak ditemukan
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-        new PengembalianForm().setVisible(true);
-        this.dispose();
+            new PengembalianForm(currentMember).setVisible(true);
+            this.dispose(); // Menutup form peminjaman
     }//GEN-LAST:event_jButton3ActionPerformed
 
     private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
@@ -422,4 +441,5 @@ public class PeminjamanForm extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTable jTable1;
     // End of variables declaration//GEN-END:variables
+
 }

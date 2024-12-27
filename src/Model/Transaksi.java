@@ -1,168 +1,140 @@
 package Model;
 
 import Controller.DatabaseConnection;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class Transaksi {
-    private String idTransaksi;
-    private String memberId;
-    private String idBarang;
-    private Date tanggalPinjam;
-    private Date tanggalKembali;
-    private String status; // "pinjam" atau "kembali"
+   private String id_transaksi;
+   private String id_member;
+   private String id_barang; 
+   private Date tgl_peminjaman;
+   private Date tgl_pengembalian;
+   private String status;
 
-    // Constructor yang memanggil generateUniqueId() jika idTransaksi tidak diberikan
-    public Transaksi(String memberId, String idBarang, Date tanggalPinjam, Date tanggalKembali, String status) {
-        this.idTransaksi = generateUniqueId();  // Generate ID otomatis
-        this.memberId = memberId;
-        this.idBarang = idBarang;
-        this.tanggalPinjam = tanggalPinjam;
-        this.tanggalKembali = tanggalKembali;
-        this.status = status;
-    }
+   public Transaksi(String id_member, String id_barang, Date tgl_peminjaman, Date tgl_pengembalian, String status) {
+       this.id_transaksi = generateUniqueId();
+       this.id_member = id_member;
+       this.id_barang = id_barang;
+       this.tgl_peminjaman = tgl_peminjaman;
+       this.tgl_pengembalian = tgl_pengembalian;
+       this.status = status;
+   }
 
-    // Constructor jika sudah memiliki idTransaksi
-    public Transaksi(String idTransaksi, String memberId, String idBarang, Date tanggalPinjam, Date tanggalKembali, String status) {
-        this.idTransaksi = idTransaksi;
-        this.memberId = memberId;
-        this.idBarang = idBarang;
-        this.tanggalPinjam = tanggalPinjam;
-        this.tanggalKembali = tanggalKembali;
-        this.status = status;
-    }
+   public String getId_transaksi() {
+       return id_transaksi;
+   }
 
-    // Getter dan Setter
-    public String getIdTransaksi() {
-        return idTransaksi;
-    }
+   public void setId_transaksi(String id_transaksi) {
+       this.id_transaksi = id_transaksi;
+   }
 
-    public void setIdTransaksi(String idTransaksi) {
-        this.idTransaksi = idTransaksi;
-    }
+   public String getId_member() {
+       return id_member;
+   }
 
-    public String getMemberId() {
-        return memberId;
-    }
+   public void setId_member(String id_member) {
+       this.id_member = id_member;
+   }
 
-    public void setMemberId(String memberId) {
-        this.memberId = memberId;
-    }
+   public String getId_barang() {
+       return id_barang;
+   }
 
-    public String getIdBarang() {
-        return idBarang;
-    }
+   public void setId_barang(String id_barang) {
+       this.id_barang = id_barang;
+   }
 
-    public void setIdBarang(String idBarang) {
-        this.idBarang = idBarang;
-    }
+   public Date getTgl_peminjaman() {
+       return tgl_peminjaman;
+   }
 
-    public Date getTanggalPinjam() {
-        return tanggalPinjam;
-    }
+   public void setTgl_peminjaman(Date tgl_peminjaman) {
+       this.tgl_peminjaman = tgl_peminjaman;
+   }
 
-    public void setTanggalPinjam(Date tanggalPinjam) {
-        this.tanggalPinjam = tanggalPinjam;
-    }
+   public Date getTgl_pengembalian() {
+       return tgl_pengembalian;
+   }
 
-    public Date getTanggalKembali() {
-        return tanggalKembali;
-    }
+   public void setTgl_pengembalian(Date tgl_pengembalian) {
+       this.tgl_pengembalian = tgl_pengembalian;
+   }
 
-    public void setTanggalKembali(Date tanggalKembali) {
-        this.tanggalKembali = tanggalKembali;
-    }
+   public String getStatus() {
+       return status;
+   }
 
-    public String getStatus() {
-        return status;
-    }
+   public void setStatus(String status) {
+       this.status = status;
+   }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+   public static void addTransaksi(Transaksi transaksi) {
+       if (isBarangAlreadyLoaned(transaksi.id_barang)) {
+           System.out.println("Barang sudah dipinjam!");
+           return;
+       }
 
-    // Method untuk mencatat transaksi peminjaman
-    public static void addTransaksi(Transaksi transaksi) {
-        // Memeriksa apakah barang sudah dipinjam
-        if (isBarangAlreadyLoaned(transaksi.idBarang)) {
-            System.out.println("Barang sudah dipinjam oleh orang lain!");
-            return; // Kembalikan jika barang sudah dipinjam
-        }
+       try (Connection conn = DatabaseConnection.getConnection()) {
+           String query = "INSERT INTO transaksi (id_transaksi, id_member, id_barang, tgl_peminjaman, tgl_pengembalian, status) VALUES (?, ?, ?, ?, ?, ?)";
+           PreparedStatement stmt = conn.prepareStatement(query);
+           stmt.setString(1, transaksi.id_transaksi);
+           stmt.setString(2, transaksi.id_member);
+           stmt.setString(3, transaksi.id_barang);
+           stmt.setDate(4, new java.sql.Date(transaksi.tgl_peminjaman.getTime()));
+           stmt.setDate(5, new java.sql.Date(transaksi.tgl_pengembalian.getTime()));
+           stmt.setString(6, transaksi.status);
+           stmt.executeUpdate();
+       } catch (SQLException e) {
+           e.printStackTrace();
+       }
+   }
 
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            String query = "INSERT INTO transaksi (id_transaksi, member_id, id_barang, tanggal_pinjam, tanggal_kembali, status) VALUES (?, ?, ?, ?, ?, ?)";
-            try (PreparedStatement stmt = conn.prepareStatement(query)) {
-                stmt.setString(1, transaksi.idTransaksi);
-                stmt.setString(2, transaksi.memberId);
-                stmt.setString(3, transaksi.idBarang);
-                stmt.setDate(4, new java.sql.Date(transaksi.tanggalPinjam.getTime()));
-                stmt.setDate(5, new java.sql.Date(transaksi.tanggalKembali.getTime()));
-                stmt.setString(6, transaksi.status);
-                stmt.executeUpdate();
-                System.out.println("Transaksi berhasil ditambahkan!");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
+   public static boolean isBarangAlreadyLoaned(String id_barang) {
+       try (Connection conn = DatabaseConnection.getConnection()) {
+           String query = "SELECT status FROM transaksi WHERE id_barang = ? AND status = 'pinjam'";
+           PreparedStatement stmt = conn.prepareStatement(query);
+           stmt.setString(1, id_barang);
+           ResultSet rs = stmt.executeQuery();
+           return rs.next();
+       } catch (SQLException e) {
+           e.printStackTrace();
+           return false;
+       }
+   }
 
-    // Method untuk memeriksa apakah barang sudah dipinjam
-    public static boolean isBarangAlreadyLoaned(String idBarang) {
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            String query = "SELECT status FROM transaksi WHERE id_barang = ? AND status = 'pinjam'";
-            try (PreparedStatement stmt = conn.prepareStatement(query)) {
-                stmt.setString(1, idBarang);
-                ResultSet rs = stmt.executeQuery();
-                return rs.next(); // Jika ada record dengan status "pinjam", berarti barang sudah dipinjam
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false; // Barang tidak dipinjam
-    }
+   public static String generateUniqueId() {
+       return "T" + UUID.randomUUID().toString();
+   }
 
-    // Generate unique transaction ID
-    public static String generateUniqueId() {
-        // Generate a unique transaction ID using UUID
-        return "T" + UUID.randomUUID().toString();
-    }
+   public String getNamaMember() {
+       try (Connection conn = DatabaseConnection.getConnection()) {
+           String query = "SELECT nama FROM member WHERE id_member = ?";
+           PreparedStatement stmt = conn.prepareStatement(query);
+           stmt.setString(1, this.id_member);
+           ResultSet rs = stmt.executeQuery();
+           if (rs.next()) {
+               return rs.getString("nama");
+           }
+       } catch (SQLException e) {
+           e.printStackTrace();
+       }
+       return "Unknown Member";
+   }
 
-    // Menambahkan method untuk mengambil nama member berdasarkan memberId
-    public String getNamaMember() {
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            String query = "SELECT nama FROM member WHERE member_id = ?";
-            try (PreparedStatement stmt = conn.prepareStatement(query)) {
-                stmt.setString(1, this.memberId);
-                ResultSet rs = stmt.executeQuery();
-                if (rs.next()) {
-                    return rs.getString("nama");
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return "Unknown Member";
-    }
-
-    // Menambahkan method untuk mengambil nama barang berdasarkan idBarang
-    public String getNamaBarang() {
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            String query = "SELECT nama_barang FROM barang WHERE id_barang = ?";
-            try (PreparedStatement stmt = conn.prepareStatement(query)) {
-                stmt.setString(1, this.idBarang);
-                ResultSet rs = stmt.executeQuery();
-                if (rs.next()) {
-                    return rs.getString("nama_barang");
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return "Unknown Item";
-    }
+   public String getNamaBarang() {
+       try (Connection conn = DatabaseConnection.getConnection()) {
+           String query = "SELECT nama_barang FROM inventory WHERE id_barang = ?";
+           PreparedStatement stmt = conn.prepareStatement(query);
+           stmt.setString(1, this.id_barang);
+           ResultSet rs = stmt.executeQuery();
+           if (rs.next()) {
+               return rs.getString("nama_barang");
+           }
+       } catch (SQLException e) {
+           e.printStackTrace();
+       }
+       return "Unknown Item";
+   }
 }
