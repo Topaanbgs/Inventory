@@ -5,10 +5,7 @@
 package View;
 
 import Model.Member;
-import View.PeminjamanForm;
 import java.sql.SQLException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 
 /**
@@ -171,26 +168,32 @@ public class LoginForm extends javax.swing.JFrame {
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
  try {
-        int memberID = Integer.parseInt(jTextField1.getText()); // Mengambil memberID
-        String password = new String(jPasswordField1.getPassword()); // Mengambil password
+            // Mengambil memberID dan password dari input pengguna
+            int memberID = Integer.parseInt(jTextField1.getText()); // Mengambil memberID
+            String password = new String(jPasswordField1.getPassword()); // Mengambil password
 
-        boolean isValid = Member.login(memberID, password);
+            // Melakukan login menggunakan Member.login()
+            boolean isValid = Member.login(memberID, password);
 
-        if (isValid) {
-            JOptionPane.showMessageDialog(this, "Login Berhasil!");
+            if (isValid) {
+                JOptionPane.showMessageDialog(this, "Login Berhasil!");
 
-            // Menampilkan dashboard atau form lain setelah login berhasil
-            PeminjamanForm dashboard = new PeminjamanForm(memberID);
-            dashboard.setVisible(true);
-            this.dispose();
-        } else {
-            JOptionPane.showMessageDialog(this, "ID atau Password Salah!", "Error", JOptionPane.ERROR_MESSAGE);
+                // Mengambil member yang sedang login
+                Member loggedInMember = Member.getLoggedInMember();
+                
+                // Menampilkan PeminjamanForm dengan passing Member yang sedang login
+                PeminjamanForm peminjamanForm = new PeminjamanForm(loggedInMember); 
+                peminjamanForm.setVisible(true);
+                this.dispose(); // Menutup LoginForm setelah login berhasil
+            } else {
+                JOptionPane.showMessageDialog(this, "ID atau Password Salah!", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "ID Member harus berupa angka!", "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Terjadi Kesalahan dalam proses login!", "Error", JOptionPane.ERROR_MESSAGE);
         }
-    } catch (NumberFormatException e) {
-    } catch (SQLException e) {
-        e.printStackTrace();
-        JOptionPane.showMessageDialog(this, "Terjadi Kesalahan dalam proses login!", "Error", JOptionPane.ERROR_MESSAGE);
-    }
     }//GEN-LAST:event_jButton1ActionPerformed
    public static void main(String args[]) {
         /* Set the Nimbus look and feel */

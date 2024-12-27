@@ -4,46 +4,39 @@
  */
 package View;
 
-import Model.Inventory;
 import Model.Member;
-import Model.Transaksi;
-import java.awt.HeadlessException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import javax.swing.JOptionPane;
+import Controller.DatabaseConnection;
+import static Model.Member.getLoggedInMember;
+import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import java.sql.*;
+import java.text.SimpleDateFormat;
 
 /**
  *
  * @author USER
  */
 public class PeminjamanForm extends javax.swing.JFrame {
-    private Member currentMember;
-        public PeminjamanForm(Member member) {
-        this.daftarTransaksi = new ArrayList<>();
+
+    private final Member currentMember;
+    
+    public PeminjamanForm(Member member) {
         initComponents();
         this.currentMember = member;
         updateWelcomeMessage();
     }
 
-    PeminjamanForm(String nim) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
         private void updateWelcomeMessage() {
+    if (currentMember != null) {    
         jLabel1.setText("Selamat Datang, " + currentMember.getName());
+    } else {
+        jLabel1.setText("Selamat Datang, Tamu");
     }
-        private final ArrayList<Transaksi> daftarTransaksi;
-        private int idCounter = 1;
-        private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+}
 
     /**
      * Creates new form DashboardMemberForm
      */
-    public PeminjamanForm(int memberID) {
-        this.daftarTransaksi = new ArrayList<>();
-        initComponents();
-    }
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -149,11 +142,11 @@ public class PeminjamanForm extends javax.swing.JFrame {
 
             },
             new String [] {
-                "Tanggal Pinjam", "Tanggal Pengembalian", "ID Barang", "Nama Barang"
+                "Tanggal Pinjam", "Tanggal Pengembalian", "Nama Barang", "Status Barang"
             }
         ) {
             Class[] types = new Class [] {
-                java.lang.String.class, java.lang.String.class, java.lang.Integer.class, java.lang.String.class
+                java.lang.String.class, java.lang.String.class, java.lang.String.class, java.lang.String.class
             };
 
             public Class getColumnClass(int columnIndex) {
@@ -264,51 +257,91 @@ public class PeminjamanForm extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton4ActionPerformed
 
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
-    Date tanggalPinjam = jDateChooser1.getDate();
-    Date tanggalKembali = jDateChooser2.getDate();
-    String namaBarang = (String) jComboBox1.getSelectedItem();
-
-    if (tanggalPinjam == null || tanggalKembali == null || namaBarang.equals("Pilihan Barang")) {
-        JOptionPane.showMessageDialog(this, "Harap lengkapi semua inputan!", "Error", JOptionPane.ERROR_MESSAGE);
-        return;
-    }
-
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-    String tanggalPinjamStr = sdf.format(tanggalPinjam);
-    String tanggalKembaliStr = sdf.format(tanggalKembali);
-
-    String idBarang = Inventory.getIdByName(namaBarang);
-
     DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
-    model.addRow(new Object[]{tanggalPinjamStr, tanggalKembaliStr, idBarang, namaBarang});
+        String namaBarang = (String) jComboBox1.getSelectedItem();
+        java.util.Date tanggalPinjam = jDateChooser1.getDate();
+        java.util.Date tanggalKembali = jDateChooser2.getDate();
+
+        // Validasi inputan
+        if (tanggalPinjam == null || tanggalKembali == null || namaBarang.equals("Pilihan Barang")) {
+            JOptionPane.showMessageDialog(this, "Pastikan semua data sudah lengkap!", "Error", JOptionPane.ERROR_MESSAGE);
+        } else {
+            // Menambahkan data peminjaman ke dalam tabel
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            String tanggalPinjamString = sdf.format(tanggalPinjam);
+            String tanggalKembaliString = sdf.format(tanggalKembali);
+            model.addRow(new Object[]{tanggalPinjamString, tanggalKembaliString, namaBarang, "Menunggu konfirmasi"});
+        }
     }//GEN-LAST:event_jButton5ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+     DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
 
-    if (model.getRowCount() == 0) {
-        JOptionPane.showMessageDialog(this, "Table kosong, tambahkan data terlebih dahulu!", "Error", JOptionPane.ERROR_MESSAGE);
+        if (model.getRowCount() == 0) {
+            JOptionPane.showMessageDialog(this, "Table kosong, tambahkan data terlebih dahulu!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        saveTransactions(model);
+    }
+
+ private void saveTransactions(DefaultTableModel model) {
+    // Mengambil tanggal sekali sebelum loop
+    java.util.Date tanggalPinjamUtil = jDateChooser1.getDate();
+    java.util.Date tanggalKembaliUtil = jDateChooser2.getDate();
+
+    // Validasi tanggal
+    if (tanggalPinjamUtil == null || tanggalKembaliUtil == null) {
+        JOptionPane.showMessageDialog(this, "Tanggal pinjam atau pengembalian tidak boleh kosong!", "Error", JOptionPane.ERROR_MESSAGE);
         return;
     }
-    
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-    for (int i = 0; i < model.getRowCount(); i++) {
-        String idTransaksi = "TRX-" + String.format("%03d", idCounter++);
-        String tanggalPinjam = (String) model.getValueAt(i, 0);
-        String tanggalKembali = (String) model.getValueAt(i, 1);
-        String idBarang = (String) model.getValueAt(i, 2);
-        String namaBarang = (String) model.getValueAt(i, 3);
 
-        Transaksi transaksi = new Transaksi(idTransaksi, currentMember.getName(), 
-                                            tanggalPinjam, tanggalKembali, namaBarang);
-        daftarTransaksi.add(transaksi);
+    // Convert to java.sql.Date hanya sekali
+    java.sql.Date tanggalPinjam = new java.sql.Date(tanggalPinjamUtil.getTime());
+    java.sql.Date tanggalKembali = new java.sql.Date(tanggalKembaliUtil.getTime());
+
+    try (Connection connection = DatabaseConnection.getConnection()) {
+        String query = "INSERT INTO transaksi (memberID, tanggal_pinjam, tanggal_kembali, nama_barang) VALUES (?, ?, ?, ?)";
+        
+        // Menyiapkan statement di luar loop
+        PreparedStatement statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+
+        // Iterasi setiap row dalam tabel untuk menyimpan transaksi
+        for (int i = 0; i < model.getRowCount(); i++) {
+            String namaBarang = (String) model.getValueAt(i, 2);
+
+            // Validasi nama barang
+            if (namaBarang == null || namaBarang.isEmpty() || namaBarang.equals("Pilihan Barang")) {
+                JOptionPane.showMessageDialog(this, "Nama barang tidak boleh kosong atau tidak valid!", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Mengisi prepared statement
+            statement.setInt(1, currentMember.getMemberID());
+            statement.setDate(2, tanggalPinjam);
+            statement.setDate(3, tanggalKembali);
+            statement.setString(4, namaBarang);
+
+            // Eksekusi statement
+            statement.executeUpdate();
+
+            // Mendapatkan ID transaksi yang di-generate
+            ResultSet generatedKeys = statement.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                int generatedTransactionId = generatedKeys.getInt(1);
+                // Tampilkan ID transaksi pada kolom InvoicePeminjamanForm (atau proses lebih lanjut)
+                System.out.println("Transaksi ID: " + generatedTransactionId);
+            }
+        }
+
+        // Berhasil menyimpan transaksi
+        JOptionPane.showMessageDialog(this, "Transaksi berhasil dikonfirmasi!");
+        model.setRowCount(0);  // Clear table after success
+
+    } catch (SQLException e) {
+        JOptionPane.showMessageDialog(this, "Gagal menyimpan transaksi: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        // Untuk debugging lebih lanjut
     }
-
-    JOptionPane.showMessageDialog(this, "Transaksi berhasil dikonfirmasi!");
-
-    InvoicePeminjamanForm invoice = new InvoicePeminjamanForm(daftarTransaksi);
-        invoice.setVisible(true);
-        this.dispose();
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
@@ -363,8 +396,10 @@ public class PeminjamanForm extends javax.swing.JFrame {
         //</editor-fold>
 
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(() -> {
-            new PeminjamanForm(memberID).setVisible(true);
+    java.awt.EventQueue.invokeLater(() -> {
+    // Misalnya, member sudah terisi dengan data login atau lainnya
+        Member member = getLoggedInMember();
+        new PeminjamanForm(member).setVisible(true);
         });
     }
 

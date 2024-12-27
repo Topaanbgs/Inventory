@@ -5,6 +5,8 @@
 package View;
 
 import Model.Transaksi;
+import Controller.DatabaseConnection;
+import java.sql.*;
 import java.util.ArrayList;
 import javax.swing.table.DefaultTableModel;
 
@@ -13,26 +15,64 @@ import javax.swing.table.DefaultTableModel;
  * @author USER
  */
 public class InvoicePeminjamanForm extends javax.swing.JFrame {
-    private ArrayList<Transaksi> daftarTransaksi;
+    private String memberID;
 
     public InvoicePeminjamanForm(ArrayList<Transaksi> transaksi) {
         initComponents();
-        this.daftarTransaksi = transaksi;
+        this.memberID = memberID;
         tampilkanData();
     }
 
+private ArrayList<Transaksi> getTransaksiByMemberId(String memberID) {
+        ArrayList<Transaksi> transaksiList = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String query = "SELECT t.id_transaksi, t.member_id, t.id_barang, t.tanggal_pinjam, t.tanggal_kembali, t.status, b.nama_barang, m.nama_member " +
+                           "FROM transaksi t " +
+                           "JOIN barang b ON t.id_barang = b.id_barang " +
+                           "JOIN member m ON t.member_id = m.id_member " +
+                           "WHERE t.member_id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, memberID);
+                ResultSet rs = stmt.executeQuery();
+
+                while (rs.next()) {
+                    Transaksi trx = new Transaksi(
+                        rs.getString("member_id"),
+                        rs.getString("id_barang"),
+                        rs.getDate("tanggal_pinjam"),
+                        rs.getDate("tanggal_kembali"),
+                        rs.getString("status")
+                    );
+                    trx.setIdTransaksi(rs.getString("id_transaksi"));
+                    // Tidak perlu menggunakan setter untuk nama barang dan nama member
+                    transaksiList.add(trx);  // Menambahkan objek Transaksi ke dalam list
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return transaksiList;
+    }
+
     private void tampilkanData() {
+        // Ambil data transaksi berdasarkan memberID
+        ArrayList<Transaksi> daftarTransaksi = getTransaksiByMemberId(memberID);
+
         DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
+        model.setRowCount(0); // Hapus semua baris sebelumnya
+
+        // Masukkan data transaksi ke dalam tabel
         for (Transaksi trx : daftarTransaksi) {
             model.addRow(new Object[]{
-                trx.getIdTransaksi(),
-                trx.getNamaMember(),
-                trx.getTanggalPeminjaman(),
-                trx.getTanggalPengembalian(),
-                trx.getNamaBarang()
+                trx.getIdTransaksi(),      // Menampilkan ID Transaksi
+                trx.getNamaMember(),       // Menggunakan getter untuk nama member
+                trx.getTanggalPinjam(),    // Menampilkan tanggal pinjam
+                trx.getTanggalKembali(),   // Menampilkan tanggal kembali
+                trx.getNamaBarang()        // Menggunakan getter untuk nama barang
             });
         }
     }
+
     /**
      * Creates new form HalamanTransaksiBerhasilForm
      */
@@ -140,8 +180,6 @@ public class InvoicePeminjamanForm extends javax.swing.JFrame {
 
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
     this.dispose();
-    PeminjamanForm peminjamanForm = new PeminjamanForm(memberID);
-    peminjamanForm.setVisible(true);
     }//GEN-LAST:event_jButton4ActionPerformed
 
     /**
@@ -173,10 +211,8 @@ public class InvoicePeminjamanForm extends javax.swing.JFrame {
 
 
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new InvoicePeminjamanForm().setVisible(true);
-            }
+        java.awt.EventQueue.invokeLater(() -> {
+            new InvoicePeminjamanForm().setVisible(true);
         });
     }
 

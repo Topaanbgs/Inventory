@@ -4,19 +4,61 @@
  */
 package View;
 
+import Controller.DatabaseConnection;
+import java.sql.*;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+
 /**
  *
  * @author USER
  */
 public class InvoicePengembalianForm extends javax.swing.JFrame {
 
+    private Connection conn;
     /**
      * Creates new form HalamanTransaksiBerhasilForm
      */
     public InvoicePengembalianForm() {
         initComponents();
+        connectToDatabase();
+        loadInvoiceData();
     }
 
+    // Koneksi ke database menggunakan kelas DatabaseConnection
+    private void connectToDatabase() {
+        try {
+            conn = DatabaseConnection.getConnection();
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error koneksi ke database: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // Fungsi untuk mengambil data pengembalian dan menampilkan invoice
+    private void loadInvoiceData() {
+        DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
+        try {
+            String sql = "SELECT t.id_transaksi, m.nama_member, t.id_barang, t.tanggal_pengembalian, t.denda " +
+                         "FROM transaksi t " +
+                         "JOIN member m ON t.id_member = m.id_member " +
+                         "WHERE t.status = 'dikembalikan'";
+
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                String idTransaksi = rs.getString("id_transaksi");
+                String namaMember = rs.getString("nama_member");
+                String idBarang = rs.getString("id_barang");
+                String tanggalKembali = rs.getString("tanggal_pengembalian");
+                float denda = rs.getFloat("denda");
+
+                model.addRow(new Object[]{idTransaksi, namaMember, idBarang, tanggalKembali, denda});
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -135,37 +177,6 @@ public class InvoicePengembalianForm extends javax.swing.JFrame {
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(InvoicePengembalianForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
         //</editor-fold>
 
         /* Create and display the form */
