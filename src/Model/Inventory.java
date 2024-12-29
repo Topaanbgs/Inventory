@@ -8,13 +8,9 @@ import java.sql.SQLException;
 
 
 public class Inventory {
-
-    public static String getIdByName(String namaBarang) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
     private String idBarang;
     private String namaBarang;
-    private String status; // "available" atau "unavailable"
+    private String status;
 
     public Inventory(String idBarang, String namaBarang, String status) {
         this.idBarang = idBarang;
@@ -22,7 +18,6 @@ public class Inventory {
         this.status = status;
     }
 
-    // Getter dan Setter
     public String getIdBarang() {
         return idBarang;
     }
@@ -47,7 +42,6 @@ public class Inventory {
         this.status = status;
     }
 
-    // Method untuk mengecek status barang
     public static boolean isBarangAvailable(String idBarang) {
         try (Connection conn = DatabaseConnection.getConnection()) {
             String query = "SELECT status FROM inventory WHERE id_barang = ?";
@@ -64,7 +58,6 @@ public class Inventory {
         return false;
     }
 
-    // Method untuk memperbarui status barang setelah peminjaman
     public static void updateStatus(String idBarang, String status) {
         try (Connection conn = DatabaseConnection.getConnection()) {
             String query = "UPDATE inventory SET status = ? WHERE id_barang = ?";

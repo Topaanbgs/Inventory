@@ -29,7 +29,6 @@ public class PengembalianForm extends javax.swing.JFrame {
     connectToDatabase();
 }
     
-    // Koneksi ke database menggunakan kelas DatabaseConnection
     private void connectToDatabase() {
         try {
             conn = DatabaseConnection.getConnection();
@@ -38,7 +37,6 @@ public class PengembalianForm extends javax.swing.JFrame {
         }
     }
     
-    // Fungsi untuk mendapatkan objek Member berdasarkan memberID
     private Member getMemberByID(String memberID) {
         Member member = null;
         try {
@@ -52,7 +50,6 @@ public class PengembalianForm extends javax.swing.JFrame {
         return member;
     }
 
-    // Fungsi untuk mencari transaksi berdasarkan ID
     private void searchTransaction(String idTransaksi) {
         if (conn == null) {
             JOptionPane.showMessageDialog(this, "Koneksi database belum terhubung.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -60,9 +57,9 @@ public class PengembalianForm extends javax.swing.JFrame {
         }
 
         String sql = """
-            SELECT t.id_transaksi, m.nama_member, t.tanggal_peminjaman, t.tanggal_pengembalian
+            SELECT t.id_transaksi, m.name, t.tgl_peminjaman, t.tgl_pengembalian
             FROM transaksi t
-            JOIN member m ON t.id_member = m.id_member
+            JOIN member m ON t.id_member = m.memberid
             WHERE t.id_transaksi = ? AND t.status = 'dipinjam'""";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -87,7 +84,6 @@ public class PengembalianForm extends javax.swing.JFrame {
         }
     }
 
-    // Konfirmasi pengembalian
     private void confirmReturn() {
         int selectedRow = jTable2.getSelectedRow();
         if (selectedRow == -1) {
@@ -131,7 +127,6 @@ public class PengembalianForm extends javax.swing.JFrame {
         }
     }
 
-    // Logging error ke console
     private void logError(Exception e, String message) {
         System.err.println(message);
         e.printStackTrace();
@@ -342,7 +337,6 @@ public class PengembalianForm extends javax.swing.JFrame {
 
         /* Create and display the form */
             java.awt.EventQueue.invokeLater(() -> {
-    // Mengambil member yang sedang login
     Member member = getLoggedInMember();
     if (member != null) {
         new PengembalianForm(member).setVisible(true);

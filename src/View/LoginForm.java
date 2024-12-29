@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package View;
 
 import Model.Member;
@@ -168,23 +164,19 @@ public class LoginForm extends javax.swing.JFrame {
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
  try {
-            // Mengambil memberID dan password dari input pengguna
-            int memberID = Integer.parseInt(jTextField1.getText()); // Mengambil memberID
-            String password = new String(jPasswordField1.getPassword()); // Mengambil password
+            int memberID = Integer.parseInt(jTextField1.getText());
+            String password = new String(jPasswordField1.getPassword());
 
-            // Melakukan login menggunakan Member.login()
             boolean isValid = Member.login(memberID, password);
 
             if (isValid) {
                 JOptionPane.showMessageDialog(this, "Login Berhasil!");
 
-                // Mengambil member yang sedang login
                 Member loggedInMember = Member.getLoggedInMember();
                 
-                // Menampilkan PeminjamanForm dengan passing Member yang sedang login
                 PeminjamanForm peminjamanForm = new PeminjamanForm(loggedInMember); 
                 peminjamanForm.setVisible(true);
-                this.dispose(); // Menutup LoginForm setelah login berhasil
+                this.dispose();
             } else {
                 JOptionPane.showMessageDialog(this, "ID atau Password Salah!", "Error", JOptionPane.ERROR_MESSAGE);
             }

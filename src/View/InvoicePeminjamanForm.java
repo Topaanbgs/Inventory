@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package View;
 
 import Model.Transaksi;
@@ -20,52 +16,49 @@ public class InvoicePeminjamanForm extends javax.swing.JFrame {
     private String idMember;
     private String namaMember;
 
-    public InvoicePeminjamanForm(ArrayList<Transaksi> transaksi) {
+    public InvoicePeminjamanForm(ArrayList<Transaksi> transaksi, String idMember, String namaMember) {
         initComponents();
-        this.idMember = idMember;  // ID Member yang sedang login
-        this.namaMember = namaMember;  // Nama Member yang sedang login
-        this.transaksiList = new ArrayList<>();
+        this.idMember = idMember;
+        this.namaMember = namaMember;
+        this.transaksiList = transaksi;
         tampilkanData();
     }
 
     private void tampilkanData() {
+        if (idMember == null || idMember.isEmpty()) {
+            System.out.println("ID Member kosong!");
+            return;
+        }
+
         DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
-        model.setRowCount(0); // Hapus semua baris sebelumnya
+        model.setRowCount(0);
 
-        // Ambil data transaksi berdasarkan member yang sedang login
         try (Connection conn = DatabaseConnection.getConnection()) {
-            String query = "SELECT * FROM transaksi WHERE member_id = ? AND status = 'pinjam'";
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, idMember);
-
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                // Ambil informasi transaksi dari tabel transaksi
-                String idTransaksi = rs.getString("id_transaksi");
-                Date tglPinjam = rs.getDate("tanggal_pinjam");
-                Date tglKembali = rs.getDate("tanggal_kembali");
-                String idBarang = rs.getString("id_barang");
-                String status = rs.getString("status");
-
-                Transaksi transaksi = new Transaksi(
-                idMember, 
-                idBarang,
-                new java.util.Date(tglPinjam.getTime()),
-                new java.util.Date(tglKembali.getTime()),
-                status
-                );
-                // Menambahkan data transaksi ke dalam tabel
-                model.addRow(new Object[]{
-                    idTransaksi,               // ID Transaksi
-                    transaksi.getNamaMember(), // Nama Member
-                    new java.text.SimpleDateFormat("dd-MM-yyyy").format(tglPinjam), // Tanggal Pinjam
-                    new java.text.SimpleDateFormat("dd-MM-yyyy").format(tglKembali), // Tanggal Kembali
-                    transaksi.getNamaBarang()  // Nama Barang
-                });
-            }
+        String query = "SELECT t.*, m.name as nama_member, i.nama_barang " +
+                  "FROM transaksi t " +
+                  "JOIN member m ON t.id_member = m.memberid " + 
+                  "JOIN inventory i ON t.id_barang = i.inventoryid " +
+                  "WHERE t.id_member = ? AND t.status = 'pinjam'";
+    
+    PreparedStatement stmt = conn.prepareStatement(query);
+    stmt.setString(1, idMember);
+    
+    ResultSet rs = stmt.executeQuery();
+    while (rs.next()) {
+        model.addRow(new Object[]{
+            rs.getString("id_transaksi"),
+            rs.getString("nama_member"),
+            new java.text.SimpleDateFormat("dd-MM-yyyy").format(rs.getDate("tgl_peminjaman")),
+            new java.text.SimpleDateFormat("dd-MM-yyyy").format(rs.getDate("tgl_pengembalian")),
+            rs.getString("nama_barang")
+        });
+    }
         } catch (SQLException e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Terjadi kesalahan dalam mengambil data.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, 
+                "Error: " + e.getMessage(), 
+                "Database Error", 
+                JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -176,14 +169,14 @@ public class InvoicePeminjamanForm extends javax.swing.JFrame {
 
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
     try (Connection conn = DatabaseConnection.getConnection()) {
-            String query = "UPDATE transaksi SET status = 'selesai' WHERE member_id = ? AND status = 'pinjam'";
+            String query = "UPDATE transaksi SET status = 'selesai' WHERE id_member = ? AND status = 'pinjam'";
             PreparedStatement stmt = conn.prepareStatement(query);
             stmt.setString(1, idMember);
             int rowsUpdated = stmt.executeUpdate();
 
             if (rowsUpdated > 0) {
                 JOptionPane.showMessageDialog(this, "Transaksi berhasil dikonfirmasi!", "Konfirmasi", JOptionPane.INFORMATION_MESSAGE);
-                this.dispose();  // Menutup form setelah konfirmasi
+                this.dispose();
             } else {
                 JOptionPane.showMessageDialog(this, "Tidak ada transaksi yang perlu dikonfirmasi.", "Error", JOptionPane.ERROR_MESSAGE);
             }

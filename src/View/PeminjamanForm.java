@@ -20,7 +20,7 @@ import java.util.ArrayList;
  */
 public class PeminjamanForm extends javax.swing.JFrame {
 
-    private final Member currentMember;
+    public final Member currentMember;
     
     public PeminjamanForm(Member member) {
         initComponents();
@@ -264,15 +264,13 @@ public class PeminjamanForm extends javax.swing.JFrame {
         java.util.Date tanggalPinjam = jDateChooser1.getDate();
         java.util.Date tanggalKembali = jDateChooser2.getDate();
 
-        // Validasi inputan
         if (tanggalPinjam == null || tanggalKembali == null || namaBarang.equals("Pilihan Barang")) {
             JOptionPane.showMessageDialog(this, "Pastikan semua data sudah lengkap!", "Error", JOptionPane.ERROR_MESSAGE);
         } else {
-            // Menambahkan data peminjaman ke dalam tabel
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
             String tanggalPinjamString = sdf.format(tanggalPinjam);
             String tanggalKembaliString = sdf.format(tanggalKembali);
-            model.addRow(new Object[]{tanggalPinjamString, tanggalKembaliString, namaBarang, "Menunggu konfirmasi"});
+            model.addRow(new Object[]{tanggalPinjamString, tanggalKembaliString, namaBarang, "Available"});
         }
     }//GEN-LAST:event_jButton5ActionPerformed
 
@@ -291,13 +289,11 @@ private void saveTransactions(DefaultTableModel model) {
         java.util.Date tanggalPinjamUtil = jDateChooser1.getDate();
         java.util.Date tanggalKembaliUtil = jDateChooser2.getDate();
 
-        // Validasi tanggal
         if (tanggalPinjamUtil == null || tanggalKembaliUtil == null) {
             JOptionPane.showMessageDialog(this, "Tanggal pinjam atau pengembalian tidak boleh kosong!", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        // Convert to java.sql.Date
         java.sql.Date tanggalPinjam = new java.sql.Date(tanggalPinjamUtil.getTime());
         java.sql.Date tanggalKembali = new java.sql.Date(tanggalKembaliUtil.getTime());
 
@@ -306,42 +302,39 @@ private void saveTransactions(DefaultTableModel model) {
 
     PreparedStatement statement = connection.prepareStatement(query);
 
-    // Iterasi setiap row dalam tabel untuk menyimpan transaksi
     for (int i = 0; i < model.getRowCount(); i++) {
         String namaBarang = (String) model.getValueAt(i, 2);
-
-        // Cari id_barang berdasarkan nama_barang
         String idBarang = getBarangIDByName(namaBarang);
 
         if (idBarang == null) {
             JOptionPane.showMessageDialog(this, "Nama barang tidak valid!", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-// Misalkan currentMember.getMemberID() mengembalikan int, maka kita ubah menjadi String
+        
 String memberId = String.valueOf(currentMember.getMemberID());
-String barangId = String.valueOf(idBarang); // Ubah idBarang menjadi String jika perlu
+String barangId = String.valueOf(idBarang);
 
-// Membuat objek Transaksi
 Transaksi transaksiBaru = new Transaksi(
-    memberId,        // Member ID sebagai String
-    barangId,        // Barang ID sebagai String
-    tanggalPinjam,   // Tanggal pinjam
-    tanggalKembali,  // Tanggal kembali
-    "Menunggu Konfirmasi"  // Status transaksi
+    memberId,       
+    barangId,       
+    tanggalPinjam,  
+    tanggalKembali, 
+    "Pinjam"  
 );
-        // Menambahkan transaksi ke database
         Transaksi.addTransaksi(transaksiBaru);
 
-        // Tampilkan invoice untuk transaksi
         ArrayList<Transaksi> transaksiList = new ArrayList<>();
         transaksiList.add(transaksiBaru);
-        new InvoicePeminjamanForm(transaksiList).setVisible(true);
+        String idMember = String.valueOf(currentMember.getMemberID());
+        String namaMember = currentMember.getName();
+
+        new InvoicePeminjamanForm(transaksiList, idMember, namaMember).setVisible(true);
     }
 
     JOptionPane.showMessageDialog(this, "Transaksi berhasil dikonfirmasi!");
-    model.setRowCount(0);  // Clear table after success
+    model.setRowCount(0); 
 
-    this.dispose();  // Close the current form
+    this.dispose();  
 
 } catch (SQLException e) {
     JOptionPane.showMessageDialog(this, "Gagal menyimpan transaksi: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -360,12 +353,12 @@ Transaksi transaksiBaru = new Transaksi(
     } catch (SQLException e) {
         e.printStackTrace();
     }
-    return null; // Mengembalikan null jika barang tidak ditemukan
+    return null; 
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
             new PengembalianForm(currentMember).setVisible(true);
-            this.dispose(); // Menutup form peminjaman
+            this.dispose(); 
     }//GEN-LAST:event_jButton3ActionPerformed
 
     private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
@@ -376,7 +369,7 @@ Transaksi transaksiBaru = new Transaksi(
     DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
     int selectedRow = jTable1.getSelectedRow();
 
-    if (selectedRow != -1) { // Jika ada baris yang dipilih
+    if (selectedRow != -1) { 
         model.removeRow(selectedRow);
     } else {
         JOptionPane.showMessageDialog(this, "Pilih baris yang ingin dihapus!", "Error", JOptionPane.ERROR_MESSAGE);
@@ -416,7 +409,6 @@ Transaksi transaksiBaru = new Transaksi(
 
         /* Create and display the form */
     java.awt.EventQueue.invokeLater(() -> {
-    // Misalnya, member sudah terisi dengan data login atau lainnya
         Member member = getLoggedInMember();
         new PeminjamanForm(member).setVisible(true);
         });

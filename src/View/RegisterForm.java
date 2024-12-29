@@ -194,7 +194,6 @@ public class RegisterForm extends javax.swing.JFrame {
     String contact = jTextField3.getText();
     String password = new String(jPasswordField1.getPassword());
 
-    // Validasi input kosong
     if (name.isEmpty() || nim.isEmpty() || contact.isEmpty() || password.isEmpty()) {
         JOptionPane.showMessageDialog(this, "Semua field harus diisi!", "Error", JOptionPane.ERROR_MESSAGE);
     } else {
@@ -202,7 +201,6 @@ public class RegisterForm extends javax.swing.JFrame {
             Connection connection = (Connection) DatabaseConnection.getConnection();
             String checkNimQuery = "SELECT * FROM member WHERE nim = ?";
             
-            // Validasi unik NIM
             try (PreparedStatement statement = connection.prepareStatement(checkNimQuery)) {
                 statement.setString(1, nim);
                 ResultSet resultSet = statement.executeQuery();
@@ -212,19 +210,16 @@ public class RegisterForm extends javax.swing.JFrame {
                 }
             }
 
-            // Membuat objek Member baru dan menyimpan ke database
             Member newMember = new Member(name, nim, contact, password);
             boolean success = Member.register(newMember);
             if (success) {
                 JOptionPane.showMessageDialog(this, "Pendaftaran berhasil!\nID Anda: " + newMember.getMemberID());
 
-                // Reset field input
                 jTextField1.setText("");
                 jTextField2.setText("");
                 jTextField3.setText("");
                 jPasswordField1.setText("");
 
-                // Pindah ke form Login
                 new LoginForm().setVisible(true);
                 this.dispose();
             } else {

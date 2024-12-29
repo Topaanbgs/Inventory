@@ -2,33 +2,32 @@ package Model;
 
 import Controller.DatabaseConnection;
 import java.util.Date;
-import java.util.UUID;
 import java.sql.*;
 
 public class Transaksi {
-   private String id_transaksi;
-   private String id_member;
-   private String id_barang; 
-   private Date tgl_peminjaman;
-   private Date tgl_pengembalian;
-   private String status;
+    private int id_transaksi;
+    private String id_member;
+    private String id_barang; 
+    private Date tgl_peminjaman;
+    private Date tgl_pengembalian;
+    private String status;
 
    public Transaksi(String id_member, String id_barang, Date tgl_peminjaman, Date tgl_pengembalian, String status) {
-       this.id_transaksi = generateUniqueId();
-       this.id_member = id_member;
-       this.id_barang = id_barang;
-       this.tgl_peminjaman = tgl_peminjaman;
-       this.tgl_pengembalian = tgl_pengembalian;
-       this.status = status;
-   }
+        this.id_transaksi = 0;
+        this.id_member = id_member;
+        this.id_barang = id_barang;
+        this.tgl_peminjaman = tgl_peminjaman;
+        this.tgl_pengembalian = tgl_pengembalian;
+        this.status = status;
+    }
 
-   public String getId_transaksi() {
-       return id_transaksi;
-   }
+   public int getId_transaksi() {
+        return id_transaksi;
+    }
 
-   public void setId_transaksi(String id_transaksi) {
-       this.id_transaksi = id_transaksi;
-   }
+    public void setId_transaksi(int id_transaksi) {
+        this.id_transaksi = id_transaksi;
+    }
 
    public String getId_member() {
        return id_member;
@@ -70,26 +69,30 @@ public class Transaksi {
        this.status = status;
    }
 
-   public static void addTransaksi(Transaksi transaksi) {
-       if (isBarangAlreadyLoaned(transaksi.id_barang)) {
-           System.out.println("Barang sudah dipinjam!");
-           return;
-       }
+    public static void addTransaksi(Transaksi transaksi) {
+        if (isBarangAlreadyLoaned(transaksi.id_barang)) {
+            System.out.println("Barang sudah dipinjam!");
+            return;
+        }
 
-       try (Connection conn = DatabaseConnection.getConnection()) {
-           String query = "INSERT INTO transaksi (id_transaksi, id_member, id_barang, tgl_peminjaman, tgl_pengembalian, status) VALUES (?, ?, ?, ?, ?, ?)";
-           PreparedStatement stmt = conn.prepareStatement(query);
-           stmt.setString(1, transaksi.id_transaksi);
-           stmt.setString(2, transaksi.id_member);
-           stmt.setString(3, transaksi.id_barang);
-           stmt.setDate(4, new java.sql.Date(transaksi.tgl_peminjaman.getTime()));
-           stmt.setDate(5, new java.sql.Date(transaksi.tgl_pengembalian.getTime()));
-           stmt.setString(6, transaksi.status);
-           stmt.executeUpdate();
-       } catch (SQLException e) {
-           e.printStackTrace();
-       }
-   }
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String query = "INSERT INTO transaksi (id_member, id_barang, tgl_peminjaman, tgl_pengembalian, status) VALUES (?, ?, ?, ?, ?)";
+            PreparedStatement stmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+            stmt.setString(1, transaksi.id_member);
+            stmt.setString(2, transaksi.id_barang);
+            stmt.setDate(3, new java.sql.Date(transaksi.tgl_peminjaman.getTime()));
+            stmt.setDate(4, new java.sql.Date(transaksi.tgl_pengembalian.getTime()));
+            stmt.setString(5, transaksi.status);
+            stmt.executeUpdate();
+
+            ResultSet rs = stmt.getGeneratedKeys();
+            if (rs.next()) {
+                transaksi.setId_transaksi(rs.getInt(1));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
    public static boolean isBarangAlreadyLoaned(String id_barang) {
        try (Connection conn = DatabaseConnection.getConnection()) {
@@ -102,10 +105,6 @@ public class Transaksi {
            e.printStackTrace();
            return false;
        }
-   }
-
-   public static String generateUniqueId() {
-       return "T" + UUID.randomUUID().toString();
    }
 
    public String getNamaMember() {

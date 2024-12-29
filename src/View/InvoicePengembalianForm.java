@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package View;
 
 import Controller.DatabaseConnection;
@@ -25,7 +21,6 @@ public class InvoicePengembalianForm extends javax.swing.JFrame {
         loadInvoiceData();
     }
 
-    // Koneksi ke database menggunakan kelas DatabaseConnection
     private void connectToDatabase() {
         try {
             conn = DatabaseConnection.getConnection();
@@ -34,7 +29,6 @@ public class InvoicePengembalianForm extends javax.swing.JFrame {
         }
     }
 
-    // Fungsi untuk mengambil data pengembalian dan menampilkan invoice
     private void loadInvoiceData() {
         DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
         try {
