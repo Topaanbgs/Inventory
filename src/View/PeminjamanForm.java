@@ -28,13 +28,9 @@ public class PeminjamanForm extends javax.swing.JFrame {
         updateWelcomeMessage();
     }
 
-        private void updateWelcomeMessage() {
-    if (currentMember != null) {    
+        private void updateWelcomeMessage() {   
         jLabel1.setText("Selamat Datang, " + currentMember.getName());
-    } else {
-        jLabel1.setText("Selamat Datang, Tamu");
     }
-}
 
     /**
      * Creates new form DashboardMemberForm

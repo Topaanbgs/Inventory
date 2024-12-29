@@ -32,19 +32,19 @@ public class InvoicePengembalianForm extends javax.swing.JFrame {
     private void loadInvoiceData() {
         DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
         try {
-            String sql = "SELECT t.id_transaksi, m.nama_member, t.id_barang, t.tanggal_pengembalian, t.denda " +
+            String sql = "SELECT t.id_transaksi, m.name, t.id_barang, t.tgl_pengembalian, t.denda " +
                          "FROM transaksi t " +
                          "JOIN member m ON t.id_member = m.id_member " +
-                         "WHERE t.status = 'dikembalikan'";
+                         "WHERE t.status = 'available'";
 
             PreparedStatement ps = conn.prepareStatement(sql);
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
                 String idTransaksi = rs.getString("id_transaksi");
-                String namaMember = rs.getString("nama_member");
+                String namaMember = rs.getString("name");
                 String idBarang = rs.getString("id_barang");
-                String tanggalKembali = rs.getString("tanggal_pengembalian");
+                String tanggalKembali = rs.getString("tgl_pengembalian");
                 float denda = rs.getFloat("denda");
 
                 model.addRow(new Object[]{idTransaksi, namaMember, idBarang, tanggalKembali, denda});

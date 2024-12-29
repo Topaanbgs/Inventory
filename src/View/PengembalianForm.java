@@ -36,19 +36,6 @@ public class PengembalianForm extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, "Error koneksi ke database: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
-    private Member getMemberByID(String memberID) {
-        Member member = null;
-        try {
-            String sql = "SELECT * FROM member WHERE id_member = ?";
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ps.setString(1, memberID);
-            ResultSet rs = ps.executeQuery();
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error mengambil data member: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-        }
-        return member;
-    }
 
     private void searchTransaction(String idTransaksi) {
         if (conn == null) {
@@ -70,9 +57,9 @@ public class PengembalianForm extends javax.swing.JFrame {
                 model.setRowCount(0);
 
                 if (rs.next()) {
-                    String namaMember = rs.getString("nama_member");
-                    String tanggalPinjam = rs.getString("tanggal_peminjaman");
-                    String tanggalKembali = rs.getString("tanggal_pengembalian");
+                    String namaMember = rs.getString("name");
+                    String tanggalPinjam = rs.getString("tgl_peminjaman");
+                    String tanggalKembali = rs.getString("tgl_pengembalian");
 
                     model.addRow(new Object[]{idTransaksi, namaMember, tanggalPinjam, tanggalKembali});
                 } else {
@@ -102,7 +89,7 @@ public class PengembalianForm extends javax.swing.JFrame {
                 ps.executeUpdate();
             }
 
-            String updateBarang = "UPDATE barang SET status = 'tersedia' WHERE id_barang = (SELECT id_barang FROM transaksi WHERE id_transaksi = ?)";
+            String updateBarang = "UPDATE inventory SET status = 'available' WHERE inventoryid = (SELECT id_barang FROM transaksi WHERE id_transaksi = ?)";
             try (PreparedStatement ps = conn.prepareStatement(updateBarang)) {
                 ps.setString(1, idTransaksi);
                 ps.executeUpdate();
@@ -144,6 +131,7 @@ public class PengembalianForm extends javax.swing.JFrame {
 
         jPanel1 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
+        jButton5 = new javax.swing.JButton();
         jScrollPane2 = new javax.swing.JScrollPane();
         jTable2 = new javax.swing.JTable();
         jButton4 = new javax.swing.JButton();
@@ -162,20 +150,31 @@ public class PengembalianForm extends javax.swing.JFrame {
         jLabel1.setForeground(new java.awt.Color(255, 255, 255));
         jLabel1.setText("Pengembalian Barang");
 
+        jButton5.setText("Logout");
+        jButton5.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton5ActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap(238, Short.MAX_VALUE)
                 .addComponent(jLabel1)
-                .addGap(200, 200, 200))
+                .addGap(113, 113, 113)
+                .addComponent(jButton5)
+                .addGap(15, 15, 15))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addGap(16, 16, 16)
-                .addComponent(jLabel1)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel1)
+                    .addComponent(jButton5))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
@@ -305,8 +304,15 @@ public class PengembalianForm extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton3ActionPerformed
 
     private void jButton7ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton7ActionPerformed
-
+    Member currentMember = Member.getLoggedInMember();
+        new PeminjamanForm(currentMember).setVisible(true);
+        this.dispose();
     }//GEN-LAST:event_jButton7ActionPerformed
+
+    private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
+        new LoginForm().setVisible(true);
+        this.dispose();
+    }//GEN-LAST:event_jButton5ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -349,6 +355,7 @@ public class PengembalianForm extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
+    private javax.swing.JButton jButton5;
     private javax.swing.JButton jButton6;
     private javax.swing.JButton jButton7;
     private javax.swing.JLabel jLabel1;

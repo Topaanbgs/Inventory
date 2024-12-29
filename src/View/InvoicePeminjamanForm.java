@@ -2,6 +2,7 @@ package View;
 
 import Model.Transaksi;
 import Controller.DatabaseConnection;
+import Model.Member;
 import java.sql.*;
 import java.util.ArrayList;
 import javax.swing.JOptionPane;
@@ -168,22 +169,36 @@ public class InvoicePeminjamanForm extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
-    try (Connection conn = DatabaseConnection.getConnection()) {
-            String query = "UPDATE transaksi SET status = 'selesai' WHERE id_member = ? AND status = 'pinjam'";
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, idMember);
-            int rowsUpdated = stmt.executeUpdate();
-
-            if (rowsUpdated > 0) {
-                JOptionPane.showMessageDialog(this, "Transaksi berhasil dikonfirmasi!", "Konfirmasi", JOptionPane.INFORMATION_MESSAGE);
-                this.dispose();
+try (Connection conn = DatabaseConnection.getConnection()) {
+        String query = "UPDATE transaksi SET status = 'dipinjam' WHERE id_member = ? AND status = 'pinjam'";
+        PreparedStatement stmt = conn.prepareStatement(query);
+        stmt.setString(1, idMember);
+        int rowsUpdated = stmt.executeUpdate();
+        
+        if (rowsUpdated > 0) {
+            JOptionPane.showMessageDialog(this, "Transaksi berhasil dikonfirmasi!", "Konfirmasi", JOptionPane.INFORMATION_MESSAGE);
+            
+            // Mengambil Member yang sedang login
+            Member currentMember = Member.getLoggedInMember();
+            
+            // Membuka PeminjamanForm dengan member yang aktif
+            if (currentMember != null) {
+                new PeminjamanForm(currentMember).setVisible(true);
             } else {
-                JOptionPane.showMessageDialog(this, "Tidak ada transaksi yang perlu dikonfirmasi.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Sesi login telah berakhir. Silakan login kembali.", 
+                    "Error", JOptionPane.ERROR_MESSAGE);
+                new LoginForm().setVisible(true);
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Terjadi kesalahan dalam konfirmasi transaksi.", "Error", JOptionPane.ERROR_MESSAGE);
+            
+            this.dispose(); // Menutup form invoice
+            
+        } else {
+            JOptionPane.showMessageDialog(this, "Tidak ada transaksi yang perlu dikonfirmasi.", "Error", JOptionPane.ERROR_MESSAGE);
         }
+    } catch (SQLException e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Terjadi kesalahan dalam konfirmasi transaksi.", "Error", JOptionPane.ERROR_MESSAGE);
+    }
     }//GEN-LAST:event_jButton4ActionPerformed
 
     /**
