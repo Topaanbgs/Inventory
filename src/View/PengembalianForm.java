@@ -122,11 +122,10 @@ public class PengembalianForm extends javax.swing.JFrame {
                     JOptionPane.INFORMATION_MESSAGE);
             }
             
-            // Tambahkan ini untuk menampilkan invoice
             InvoicePengembalianForm invoiceForm = new InvoicePengembalianForm();
             invoiceForm.setTransaksi(transaksi);
-            invoiceForm.setVisible(true); // Tambahkan ini
-            this.dispose(); // Tambahkan ini untuk menutup form pengembalian
+            invoiceForm.setVisible(true); 
+            this.dispose();
             
             ((DefaultTableModel) jTable2.getModel()).setRowCount(0);
         } else {

@@ -80,23 +80,7 @@ public class InvoicePengembalianForm extends javax.swing.JFrame {
                 JOptionPane.ERROR_MESSAGE);
         }
     }
-
-    private void printInvoice() {
-        int selectedRow = jTable2.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, 
-                "Pilih transaksi yang akan dicetak.", 
-                "Warning", 
-                JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        JOptionPane.showMessageDialog(this, 
-            "Fitur cetak invoice akan segera hadir!", 
-            "Info", 
-            JOptionPane.INFORMATION_MESSAGE);
-    }
-
+    
     public void closeConnection() {
         try {
             if (conn != null && !conn.isClosed()) {

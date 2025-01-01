@@ -13,7 +13,6 @@ public class TransaksiPengembalian extends Transaksi {
     private static final double DENDA_PER_HARI = 5000.0;
     private double totalDenda = 0.0;
     
-    // Constructor dengan validasi parameter
     public TransaksiPengembalian(String id_member, String id_barang, 
                                 Date tgl_peminjaman, Date tgl_pengembalian, 
                                 String status) {
@@ -178,7 +177,6 @@ public class TransaksiPengembalian extends Transaksi {
                     TransaksiPengembalian transaksi = new TransaksiPengembalian(rs.getInt("id_transaksi"));
                     transaksiList.add(transaksi);
                 } catch (RuntimeException e) {
-                    // Log error but continue processing other records
                     e.printStackTrace();
                 }
             }

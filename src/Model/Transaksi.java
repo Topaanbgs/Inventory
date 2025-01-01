@@ -16,7 +16,6 @@ public class Transaksi {
     private String status;   
     private Date tgl_dikembalikan;
 
-    // Pindahkan TransactionSequenceGenerator sebagai static nested class
     private static class TransactionSequenceGenerator {
         private static final Object lock = new Object();
         private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyMMdd");
@@ -24,7 +23,7 @@ public class Transaksi {
         private static String currentDate = "";
         private static int currentSequence = 0;
         
-        public static int generateUniqueTransaksiID() {  // Ubah return type ke int
+        public static int generateUniqueTransaksiID() {
             synchronized (lock) {
                 String today = DATE_FORMAT.format(new Date());
                 
@@ -65,12 +64,9 @@ public class Transaksi {
         }
     }
 
-    // Constructor kosong untuk mendukung inheritance
     public Transaksi() {
-        // Initialize fields dengan nilai default jika diperlukan
     }
 
-    // Constructor dengan parameter
     public Transaksi(String id_member, String id_barang, Date tgl_peminjaman, Date tgl_pengembalian, String status) {
         this.id_transaksi = TransactionSequenceGenerator.generateUniqueTransaksiID();
         this.id_member = id_member;
@@ -80,7 +76,6 @@ public class Transaksi {
         this.status = status;
     }
 
-    // Getters and Setters
     public int getId_transaksi() {
         return id_transaksi;
     }
@@ -137,7 +132,6 @@ public class Transaksi {
         this.tgl_dikembalikan = tgl_dikembalikan;
     }
 
-    // Method untuk menambah transaksi ke database (dapat di-override)
     public boolean addTransaksi() {
         try (Connection conn = DatabaseConnection.getConnection()) {
             String query = "INSERT INTO transaksi (id_transaksi, id_member, id_barang, tgl_peminjaman, tgl_pengembalian, status) " +
@@ -159,7 +153,6 @@ public class Transaksi {
         }
     }
 
-    // Method untuk mendapatkan daftar semua transaksi
     public static List<Transaksi> getAllTransaksi() {
         List<Transaksi> transaksiList = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getConnection()) {
