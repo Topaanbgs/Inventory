@@ -282,58 +282,72 @@ public class PeminjamanForm extends javax.swing.JFrame {
     }
 
 private void saveTransactions(DefaultTableModel model) {
-        java.util.Date tanggalPinjamUtil = jDateChooser1.getDate();
-        java.util.Date tanggalKembaliUtil = jDateChooser2.getDate();
-
-        if (tanggalPinjamUtil == null || tanggalKembaliUtil == null) {
-            JOptionPane.showMessageDialog(this, "Tanggal pinjam atau pengembalian tidak boleh kosong!", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        java.sql.Date tanggalPinjam = new java.sql.Date(tanggalPinjamUtil.getTime());
-        java.sql.Date tanggalKembali = new java.sql.Date(tanggalKembaliUtil.getTime());
-
-        try (Connection connection = DatabaseConnection.getConnection()) {
-    String query = "INSERT INTO transaksi (id_member, id_barang, tgl_peminjaman, tgl_pengembalian, status) VALUES (?, ?, ?, ?, ?)";
-
-    PreparedStatement statement = connection.prepareStatement(query);
-
-    for (int i = 0; i < model.getRowCount(); i++) {
-        String namaBarang = (String) model.getValueAt(i, 2);
-        String idBarang = getBarangIDByName(namaBarang);
-
-        if (idBarang == null) {
-            JOptionPane.showMessageDialog(this, "Nama barang tidak valid!", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
+    java.util.Date tanggalPinjamUtil = jDateChooser1.getDate();
+    java.util.Date tanggalKembaliUtil = jDateChooser2.getDate();
+    
+    if (tanggalPinjamUtil == null || tanggalKembaliUtil == null) {
+        JOptionPane.showMessageDialog(this, "Tanggal pinjam atau pengembalian tidak boleh kosong!", "Error", JOptionPane.ERROR_MESSAGE);
+        return;
+    }
+    
+    java.sql.Date tanggalPinjam = new java.sql.Date(tanggalPinjamUtil.getTime());
+    java.sql.Date tanggalKembali = new java.sql.Date(tanggalKembaliUtil.getTime());
+    
+    ArrayList<Transaksi> transaksiList = new ArrayList<>();
+    
+    try (Connection connection = DatabaseConnection.getConnection()) {
+        connection.setAutoCommit(false);
+        
+        try {
+            for (int i = 0; i < model.getRowCount(); i++) {
+                String namaBarang = (String) model.getValueAt(i, 2);
+                String idBarang = getBarangIDByName(namaBarang);
+                
+                if (idBarang == null) {
+                    throw new SQLException("Nama barang tidak valid!");
+                }
+                
+                String memberId = String.valueOf(currentMember.getMemberID());
+                
+                Transaksi transaksiBaru = new Transaksi(
+                    memberId,
+                    idBarang,
+                    tanggalPinjam,
+                    tanggalKembali,
+                    "pinjam"
+                );
+                
+                if (!transaksiBaru.addTransaksi()) {
+                    throw new SQLException("Gagal menyimpan transaksi");
+                }
+                
+                transaksiList.add(transaksiBaru);
+            }
+            
+            connection.commit();
+            
+            InvoicePeminjamanForm invoiceForm = new InvoicePeminjamanForm(
+                transaksiList,
+                String.valueOf(currentMember.getMemberID()),
+                currentMember.getName()
+            );
+            invoiceForm.setVisible(true);
+            
+            JOptionPane.showMessageDialog(this, "Transaksi berhasil dikonfirmasi!");
+            model.setRowCount(0);
+            this.dispose();
+            
+        } catch (Exception e) {
+            connection.rollback();
+            throw e;
         }
         
-String memberId = String.valueOf(currentMember.getMemberID());
-String barangId = String.valueOf(idBarang);
-
-Transaksi transaksiBaru = new Transaksi(
-    memberId,       
-    barangId,       
-    tanggalPinjam,  
-    tanggalKembali, 
-    "Pinjam"  
-);
-        Transaksi.addTransaksi(transaksiBaru);
-
-        ArrayList<Transaksi> transaksiList = new ArrayList<>();
-        transaksiList.add(transaksiBaru);
-        String idMember = String.valueOf(currentMember.getMemberID());
-        String namaMember = currentMember.getName();
-
-        new InvoicePeminjamanForm(transaksiList, idMember, namaMember).setVisible(true);
-    }
-
-    JOptionPane.showMessageDialog(this, "Transaksi berhasil dikonfirmasi!");
-    model.setRowCount(0); 
-
-    this.dispose();  
-
-} catch (SQLException e) {
-    JOptionPane.showMessageDialog(this, "Gagal menyimpan transaksi: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+    } catch (SQLException e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(this, 
+            "Gagal menyimpan transaksi: " + e.getMessage(), 
+            "Error", 
+            JOptionPane.ERROR_MESSAGE);
     }
 }
     private String getBarangIDByName(String namaBarang) {

@@ -178,10 +178,7 @@ try (Connection conn = DatabaseConnection.getConnection()) {
         if (rowsUpdated > 0) {
             JOptionPane.showMessageDialog(this, "Transaksi berhasil dikonfirmasi!", "Konfirmasi", JOptionPane.INFORMATION_MESSAGE);
             
-            // Mengambil Member yang sedang login
             Member currentMember = Member.getLoggedInMember();
-            
-            // Membuka PeminjamanForm dengan member yang aktif
             if (currentMember != null) {
                 new PeminjamanForm(currentMember).setVisible(true);
             } else {
@@ -190,7 +187,7 @@ try (Connection conn = DatabaseConnection.getConnection()) {
                 new LoginForm().setVisible(true);
             }
             
-            this.dispose(); // Menutup form invoice
+            this.dispose();
             
         } else {
             JOptionPane.showMessageDialog(this, "Tidak ada transaksi yang perlu dikonfirmasi.", "Error", JOptionPane.ERROR_MESSAGE);

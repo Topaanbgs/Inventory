@@ -1,69 +1,78 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package View;
 
 import Controller.DatabaseConnection;
 import Model.Member;
-import static Model.Member.getLoggedInMember;
-
+import Model.TransaksiPengembalian;
 import java.sql.*;
+import java.util.Date;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
-/**
- *
- * @author USER
- */
 public class PengembalianForm extends javax.swing.JFrame {
-
+    private final String memberID;
     private Connection conn;
-    private String memberID;
-    /**
-     * Creates new form HalamanTransaksiBerhasilForm
-     */
+    
     public PengembalianForm(Member member) {
-    initComponents();
-    this.memberID = String.valueOf(member.getMemberID()); 
-    connectToDatabase();
-}
+        initComponents();
+        this.memberID = String.valueOf(member.getMemberID());
+        connectToDatabase();
+    }
     
     private void connectToDatabase() {
         try {
             conn = DatabaseConnection.getConnection();
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error koneksi ke database: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, 
+                "Error koneksi ke database: " + e.getMessage(), 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void searchTransaction(String idTransaksi) {
         if (conn == null) {
-            JOptionPane.showMessageDialog(this, "Koneksi database belum terhubung.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, 
+                "Koneksi database belum terhubung.", 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
             return;
         }
-
+        
         String sql = """
-            SELECT t.id_transaksi, m.name, t.tgl_peminjaman, t.tgl_pengembalian
+            SELECT t.id_transaksi, m.name, t.tgl_peminjaman, t.tgl_pengembalian, i.nama_barang
             FROM transaksi t
             JOIN member m ON t.id_member = m.memberid
-            WHERE t.id_transaksi = ? AND t.status = 'dipinjam'""";
-
+            JOIN inventory i ON t.id_barang = i.inventoryid
+            WHERE t.id_transaksi = ? 
+            AND t.id_member = ? 
+            AND t.status = 'dipinjam'""";
+            
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, idTransaksi);
-
+            ps.setString(2, this.memberID);
+            
             try (ResultSet rs = ps.executeQuery()) {
                 DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
                 model.setRowCount(0);
-
+                
                 if (rs.next()) {
                     String namaMember = rs.getString("name");
-                    String tanggalPinjam = rs.getString("tgl_peminjaman");
-                    String tanggalKembali = rs.getString("tgl_pengembalian");
-
-                    model.addRow(new Object[]{idTransaksi, namaMember, tanggalPinjam, tanggalKembali});
+                    String namaBarang = rs.getString("nama_barang");
+                    Date tanggalPinjam = rs.getDate("tgl_peminjaman");
+                    Date tanggalKembali = rs.getDate("tgl_pengembalian");
+                    
+                    model.addRow(new Object[]{
+                        idTransaksi, 
+                        namaMember, 
+                        namaBarang,
+                        tanggalPinjam, 
+                        tanggalKembali
+                    });
                 } else {
-                    JOptionPane.showMessageDialog(this, "Transaksi tidak ditemukan atau sudah dikembalikan.", "Info", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(this, 
+                        "Transaksi tidak ditemukan atau bukan milik Anda.", 
+                        "Info", 
+                        JOptionPane.INFORMATION_MESSAGE);
                 }
             }
         } catch (SQLException e) {
@@ -72,52 +81,81 @@ public class PengembalianForm extends javax.swing.JFrame {
     }
 
     private void confirmReturn() {
-        int selectedRow = jTable2.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Pilih transaksi terlebih dahulu.", "Warning", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+    int selectedRow = jTable2.getSelectedRow();
+    if (selectedRow == -1) {
+        JOptionPane.showMessageDialog(this, 
+            "Pilih transaksi terlebih dahulu.", 
+            "Warning", 
+            JOptionPane.WARNING_MESSAGE);
+        return;
+    }
 
-        String idTransaksi = (String) jTable2.getValueAt(selectedRow, 0);
-
-        try {
-            conn.setAutoCommit(false);
-
-            String updateTransaksi = "UPDATE transaksi SET status = 'dikembalikan' WHERE id_transaksi = ?";
-            try (PreparedStatement ps = conn.prepareStatement(updateTransaksi)) {
-                ps.setString(1, idTransaksi);
-                ps.executeUpdate();
-            }
-
-            String updateBarang = "UPDATE inventory SET status = 'available' WHERE inventoryid = (SELECT id_barang FROM transaksi WHERE id_transaksi = ?)";
+    int idTransaksi = Integer.parseInt((String) jTable2.getValueAt(selectedRow, 0));
+    
+    try {
+        conn.setAutoCommit(false);
+        
+        TransaksiPengembalian transaksi = new TransaksiPengembalian(idTransaksi);
+        
+        Date tglDikembalikan = new Date();
+        boolean success = transaksi.prosesKembali(tglDikembalikan);
+        
+        if (success) {
+            String updateBarang = "UPDATE inventory SET status = 'available' " +
+                                "WHERE inventoryid = ?";
             try (PreparedStatement ps = conn.prepareStatement(updateBarang)) {
-                ps.setString(1, idTransaksi);
+                ps.setString(1, transaksi.getId_barang());
                 ps.executeUpdate();
             }
-
+            
             conn.commit();
-            JOptionPane.showMessageDialog(this, "Barang berhasil dikembalikan.", "Success", JOptionPane.INFORMATION_MESSAGE);
+            
+            if (transaksi.getTotalDenda() > 0) {
+                String message = String.format("Barang berhasil dikembalikan.\n" +
+                                             "Terdapat denda keterlambatan sebesar: Rp %.2f", 
+                                             transaksi.getTotalDenda());
+                JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                    "Barang berhasil dikembalikan.", 
+                    "Success", 
+                    JOptionPane.INFORMATION_MESSAGE);
+            }
+            
+            // Tambahkan ini untuk menampilkan invoice
+            InvoicePengembalianForm invoiceForm = new InvoicePengembalianForm();
+            invoiceForm.setTransaksi(transaksi);
+            invoiceForm.setVisible(true); // Tambahkan ini
+            this.dispose(); // Tambahkan ini untuk menutup form pengembalian
+            
             ((DefaultTableModel) jTable2.getModel()).setRowCount(0);
+        } else {
+            throw new SQLException("Gagal memproses pengembalian");
+        }
+        
+    } catch (SQLException e) {
+        try {
+            conn.rollback();
+        } catch (SQLException rollbackEx) {
+            logError(rollbackEx, "Rollback gagal");
+        }
+        logError(e, "Error saat mengonfirmasi pengembalian");
+    } finally {
+        try {
+            conn.setAutoCommit(true);
         } catch (SQLException e) {
-            try {
-                conn.rollback();
-            } catch (SQLException rollbackEx) {
-                logError(rollbackEx, "Rollback gagal");
-            }
-            logError(e, "Error saat mengonfirmasi pengembalian");
-        } finally {
-            try {
-                conn.setAutoCommit(true);
-            } catch (SQLException e) {
-                logError(e, "Error mengembalikan auto-commit");
-            }
+            logError(e, "Error mengembalikan auto-commit");
         }
     }
+}
 
     private void logError(Exception e, String message) {
         System.err.println(message);
         e.printStackTrace();
-        JOptionPane.showMessageDialog(this, message + ": " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(this, 
+            message + ": " + e.getMessage(), 
+            "Error", 
+            JOptionPane.ERROR_MESSAGE);
     }
 
     /**
@@ -343,13 +381,9 @@ public class PengembalianForm extends javax.swing.JFrame {
 
         /* Create and display the form */
             java.awt.EventQueue.invokeLater(() -> {
-    Member member = getLoggedInMember();
-    if (member != null) {
+        Member member = Member.getLoggedInMember();
         new PengembalianForm(member).setVisible(true);
-    } else {
-        JOptionPane.showMessageDialog(null, "Member tidak ditemukan. Silakan login terlebih dahulu.", "Error", JOptionPane.ERROR_MESSAGE);
-    }
-});
+        });
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

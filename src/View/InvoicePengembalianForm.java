@@ -1,57 +1,116 @@
 package View;
 
 import Controller.DatabaseConnection;
+import Model.Member;
+import Model.TransaksiPengembalian;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
-/**
- *
- * @author USER
- */
 public class InvoicePengembalianForm extends javax.swing.JFrame {
-
     private Connection conn;
-    /**
-     * Creates new form HalamanTransaksiBerhasilForm
-     */
+    private TransaksiPengembalian transaksi;
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
+    
     public InvoicePengembalianForm() {
         initComponents();
         connectToDatabase();
         loadInvoiceData();
     }
-
+    
     private void connectToDatabase() {
         try {
             conn = DatabaseConnection.getConnection();
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error koneksi ke database: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, 
+                "Error koneksi ke database: " + e.getMessage(), 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    public void setTransaksi(TransaksiPengembalian transaksi) {
+        this.transaksi = transaksi;
+        loadInvoiceData();
+    }
+    
+    private void loadInvoiceData() {
+        DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
+        model.setRowCount(0);
+        
+        try {
+            if (transaksi != null) {
+                model.addRow(new Object[]{
+                    transaksi.getId_transaksi(),
+                    transaksi.getNamaMember(),
+                    transaksi.getNamaBarang(),
+                    dateFormat.format(transaksi.getTgl_dikembalikan()),
+                    transaksi.getTotalDenda()
+                });
+            } else {
+                String sql = """
+                    SELECT t.id_transaksi, m.name, i.nama_barang, 
+                           t.tgl_dikembalikan, d.jml_denda
+                    FROM transaksi t 
+                    JOIN member m ON t.id_member = m.memberid 
+                    JOIN inventory i ON t.id_barang = i.inventoryid
+                    LEFT JOIN denda d ON t.id_transaksi = d.id_transaksi
+                    WHERE t.status = 'kembali'
+                    ORDER BY t.tgl_dikembalikan DESC""";
+                
+                try (PreparedStatement ps = conn.prepareStatement(sql);
+                     ResultSet rs = ps.executeQuery()) {
+                    
+                    while (rs.next()) {
+                        model.addRow(new Object[]{
+                            rs.getInt("id_transaksi"),
+                            rs.getString("name"),
+                            rs.getString("nama_barang"),
+                            dateFormat.format(rs.getDate("tgl_dikembalikan")),
+                            rs.getDouble("jml_denda")
+                        });
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, 
+                "Error: " + e.getMessage(), 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void loadInvoiceData() {
-        DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
+    private void printInvoice() {
+        int selectedRow = jTable2.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, 
+                "Pilih transaksi yang akan dicetak.", 
+                "Warning", 
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        JOptionPane.showMessageDialog(this, 
+            "Fitur cetak invoice akan segera hadir!", 
+            "Info", 
+            JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    public void closeConnection() {
         try {
-            String sql = "SELECT t.id_transaksi, m.name, t.id_barang, t.tgl_pengembalian, t.denda " +
-                         "FROM transaksi t " +
-                         "JOIN member m ON t.id_member = m.id_member " +
-                         "WHERE t.status = 'available'";
-
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                String idTransaksi = rs.getString("id_transaksi");
-                String namaMember = rs.getString("name");
-                String idBarang = rs.getString("id_barang");
-                String tanggalKembali = rs.getString("tgl_pengembalian");
-                float denda = rs.getFloat("denda");
-
-                model.addRow(new Object[]{idTransaksi, namaMember, idBarang, tanggalKembali, denda});
+            if (conn != null && !conn.isClosed()) {
+                conn.close();
             }
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            System.err.println("Error closing connection: " + e.getMessage());
         }
+    }
+    
+    @Override
+    public void dispose() {
+        closeConnection();
+        super.dispose();
     }
     /**
      * This method is called from within the constructor to initialize the form.
@@ -99,11 +158,11 @@ public class InvoicePengembalianForm extends javax.swing.JFrame {
 
             },
             new String [] {
-                "ID Transaksi", "Nama", "ID Barang", "Tanggal Dikembalikan", "Denda"
+                "ID Transaksi", "Nama", "Nama Barang", "Tanggal Dikembalikan", "Denda"
             }
         ) {
             Class[] types = new Class [] {
-                java.lang.Integer.class, java.lang.String.class, java.lang.Integer.class, java.lang.String.class, java.lang.Float.class
+                java.lang.Integer.class, java.lang.String.class, java.lang.String.class, java.lang.String.class, java.lang.Float.class
             };
 
             public Class getColumnClass(int columnIndex) {
@@ -113,6 +172,11 @@ public class InvoicePengembalianForm extends javax.swing.JFrame {
         jScrollPane2.setViewportView(jTable2);
 
         jButton4.setText("Selesai");
+        jButton4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton4ActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -145,6 +209,12 @@ public class InvoicePengembalianForm extends javax.swing.JFrame {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
+        Member currentMember = Member.getLoggedInMember();
+        new PeminjamanForm(currentMember).setVisible(true);
+        this.dispose();
+    }//GEN-LAST:event_jButton4ActionPerformed
 
     /**
      * @param args the command line arguments
