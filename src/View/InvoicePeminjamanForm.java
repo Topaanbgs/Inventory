@@ -4,6 +4,7 @@ import Model.Transaksi;
 import Controller.DatabaseConnection;
 import Model.Member;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
@@ -26,42 +27,54 @@ public class InvoicePeminjamanForm extends javax.swing.JFrame {
     }
 
     private void tampilkanData() {
-        if (idMember == null || idMember.isEmpty()) {
-            System.out.println("ID Member kosong!");
-            return;
-        }
+    if (idMember == null || idMember.isEmpty()) {
+        System.out.println("ID Member kosong!");
+        return;
+    }
 
-        DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
-        model.setRowCount(0);
+    DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
+    model.setRowCount(0);
 
-        try (Connection conn = DatabaseConnection.getConnection()) {
+    try (Connection conn = DatabaseConnection.getConnection()) {
         String query = "SELECT t.*, m.name as nama_member, i.nama_barang " +
-                  "FROM transaksi t " +
-                  "JOIN member m ON t.id_member = m.memberid " + 
-                  "JOIN inventory i ON t.id_barang = i.inventoryid " +
-                  "WHERE t.id_member = ? AND t.status = 'pinjam'";
-    
-    PreparedStatement stmt = conn.prepareStatement(query);
-    stmt.setString(1, idMember);
-    
-    ResultSet rs = stmt.executeQuery();
-    while (rs.next()) {
-        model.addRow(new Object[]{
-            rs.getString("id_transaksi"),
-            rs.getString("nama_member"),
-            new java.text.SimpleDateFormat("dd-MM-yyyy").format(rs.getDate("tgl_peminjaman")),
-            new java.text.SimpleDateFormat("dd-MM-yyyy").format(rs.getDate("tgl_pengembalian")),
-            rs.getString("nama_barang")
-        });
-    }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, 
-                "Error: " + e.getMessage(), 
-                "Database Error", 
-                JOptionPane.ERROR_MESSAGE);
+                      "FROM transaksi t " +
+                      "JOIN member m ON t.id_member = m.memberid " + 
+                      "JOIN inventory i ON t.id_barang = i.inventoryid " +
+                      "WHERE t.id_member = ? AND t.status = 'pinjam'";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, idMember);
+            ResultSet rs = stmt.executeQuery();
+            
+            // Format untuk menampilkan tanggal
+            SimpleDateFormat displayFormat = new SimpleDateFormat("dd-MM-yyyy");
+            
+            while (rs.next()) {
+                // Ambil tanggal sebagai Date object
+                java.sql.Date tglPeminjaman = rs.getDate("tgl_peminjaman");
+                java.sql.Date tglPengembalian = rs.getDate("tgl_pengembalian");
+                
+                // Format tanggal ke string dengan format yang benar
+                String formattedTglPeminjaman = displayFormat.format(tglPeminjaman);
+                String formattedTglPengembalian = displayFormat.format(tglPengembalian);
+                
+                model.addRow(new Object[]{
+                    rs.getString("id_transaksi"),
+                    rs.getString("nama_member"),
+                    formattedTglPeminjaman,
+                    formattedTglPengembalian,
+                    rs.getString("nama_barang")
+                });
+            }
         }
+    } catch (SQLException e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(this, 
+            "Error: " + e.getMessage(), 
+            "Database Error", 
+            JOptionPane.ERROR_MESSAGE);
     }
+}
 
     /**
      * Creates new form HalamanTransaksiBerhasilForm
