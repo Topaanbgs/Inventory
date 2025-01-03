@@ -146,7 +146,7 @@
               <Table columnCount="4" rowCount="0">
                 <Column editable="true" title="ID Transaksi" type="java.lang.Integer"/>
                 <Column editable="true" title="Nama" type="java.lang.String"/>
-                <Column editable="true" title="Tanggal Peminjaman" type="java.lang.String"/>
+                <Column editable="true" title="Nama Barang" type="java.lang.String"/>
                 <Column editable="true" title="Tanggal Pengembalian" type="java.lang.String"/>
               </Table>
             </Property>

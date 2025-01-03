@@ -14,6 +14,7 @@ import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -256,26 +257,40 @@ public class PeminjamanForm extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton4ActionPerformed
 
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
-    DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
     String namaBarang = (String) jComboBox1.getSelectedItem();
     java.util.Date tanggalPinjam = jDateChooser1.getDate();
     java.util.Date tanggalKembali = jDateChooser2.getDate();
 
     if (tanggalPinjam == null || tanggalKembali == null || namaBarang.equals("Pilihan Barang")) {
         JOptionPane.showMessageDialog(this, "Pastikan semua data sudah lengkap!", "Error", JOptionPane.ERROR_MESSAGE);
-    } else {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        String tanggalPinjamString = sdf.format(tanggalPinjam);
-        String tanggalKembaliString = sdf.format(tanggalKembali);
-        
-        // Validasi tanggal
-        if (tanggalPinjam.after(tanggalKembali)) {
-            JOptionPane.showMessageDialog(this, "Tanggal peminjaman tidak boleh lebih besar dari tanggal pengembalian!", "Error", JOptionPane.ERROR_MESSAGE);
+        return;
+    }
+
+    for (int i = 0; i < model.getRowCount(); i++) {
+        String existingBarang = (String) model.getValueAt(i, 2);
+        if (existingBarang.equals(namaBarang)) {
+            JOptionPane.showMessageDialog(this, 
+                "Barang " + namaBarang + " Hanya ada 1", 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
             return;
         }
-        
-        model.addRow(new Object[]{tanggalPinjamString, tanggalKembaliString, namaBarang, "Available"});
     }
+
+    if (tanggalPinjam.after(tanggalKembali)) {
+        JOptionPane.showMessageDialog(this, 
+            "Tanggal peminjaman tidak boleh lebih besar dari tanggal pengembalian!", 
+            "Error", 
+            JOptionPane.ERROR_MESSAGE);
+        return;
+    }
+        
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    String tanggalPinjamString = sdf.format(tanggalPinjam);
+    String tanggalKembaliString = sdf.format(tanggalKembali);
+    
+    model.addRow(new Object[]{tanggalPinjamString, tanggalKembaliString, namaBarang, "Available"});
     }//GEN-LAST:event_jButton5ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
@@ -290,80 +305,55 @@ public class PeminjamanForm extends javax.swing.JFrame {
     }
 
 private void saveTransactions(DefaultTableModel model) {
-    ArrayList<Transaksi> transaksiList = new ArrayList<>();
+    List<String> barangIds = new ArrayList<>();
+    List<java.util.Date> tanggalPinjams = new ArrayList<>();
+    List<java.util.Date> tanggalKembalis = new ArrayList<>();
     
-    try (Connection connection = DatabaseConnection.getConnection()) {
-        connection.setAutoCommit(false);
+    try {
+        SimpleDateFormat displayFormat = new SimpleDateFormat("yyyy-MM-dd");
         
-        try {
-            SimpleDateFormat displayFormat = new SimpleDateFormat("yyyy-MM-dd");
+        // Collect all items
+        for (int i = 0; i < model.getRowCount(); i++) {
+            String tanggalPinjamStr = (String) model.getValueAt(i, 0);
+            String tanggalKembaliStr = (String) model.getValueAt(i, 1);
+            String namaBarang = (String) model.getValueAt(i, 2);
             
-            for (int i = 0; i < model.getRowCount(); i++) {
-                // Ambil tanggal dari masing-masing baris tabel dan pastikan format yang benar
-                String tanggalPinjamStr = (String) model.getValueAt(i, 0);
-                String tanggalKembaliStr = (String) model.getValueAt(i, 1);
-                
-                try {
-                    // Parse ke java.util.Date terlebih dahulu
-                    java.util.Date utilDatePinjam = displayFormat.parse(tanggalPinjamStr);
-                    java.util.Date utilDateKembali = displayFormat.parse(tanggalKembaliStr);
-                    
-                    // Konversi ke java.sql.Date
-                    java.sql.Date tanggalPinjam = new java.sql.Date(utilDatePinjam.getTime());
-                    java.sql.Date tanggalKembali = new java.sql.Date(utilDateKembali.getTime());
-                    
-                    String namaBarang = (String) model.getValueAt(i, 2);
-                    String idBarang = getBarangIDByName(namaBarang);
-                    
-                    if (idBarang == null) {
-                        throw new SQLException("Nama barang tidak valid!");
-                    }
-                    
-                    String memberId = String.valueOf(currentMember.getMemberID());
-                    
-                    Transaksi transaksiBaru = new Transaksi(
-                        memberId,
-                        idBarang,
-                        tanggalPinjam,
-                        tanggalKembali,
-                        "pinjam"
-                    );
-                    
-                    if (!transaksiBaru.addTransaksi()) {
-                        throw new SQLException("Gagal menyimpan transaksi");
-                    }
-                    
-                    transaksiList.add(transaksiBaru);
-                } catch (ParseException e) {
-                    throw new SQLException("Format tanggal tidak valid: " + e.getMessage());
-                }
+            String idBarang = getBarangIDByName(namaBarang);
+            if (idBarang == null) {
+                throw new SQLException("Nama barang tidak valid!");
             }
             
-            connection.commit();
-            
-            InvoicePeminjamanForm invoiceForm = new InvoicePeminjamanForm(
-                transaksiList,
-                String.valueOf(currentMember.getMemberID()),
-                currentMember.getName()
-            );
-            invoiceForm.setVisible(true);
-            
-            JOptionPane.showMessageDialog(this, "Transaksi berhasil dikonfirmasi!");
-            model.setRowCount(0);
-            this.dispose();
-            
-        } catch (Exception e) {
-            connection.rollback();
-            throw e;
+            // Check if item is already borrowed
+            if (Transaksi.isBarangAlreadyLoaned(idBarang)) {
+                throw new SQLException("Barang " + namaBarang + " sedang dipinjam!");
+            }
+
+            barangIds.add(idBarang);
+            tanggalPinjams.add(displayFormat.parse(tanggalPinjamStr));
+            tanggalKembalis.add(displayFormat.parse(tanggalKembaliStr));
         }
-    } catch (SQLException e) {
-        e.printStackTrace();
-        JOptionPane.showMessageDialog(this, 
-            "Gagal menyimpan transaksi: " + e.getMessage(), 
-            "Error", 
-            JOptionPane.ERROR_MESSAGE);
+
+        // Create single transaction for all items
+        Transaksi mainTransaksi = new Transaksi(
+            currentMember.getMemberID(),
+            barangIds.get(0),
+            new java.sql.Date(tanggalPinjams.get(0).getTime()),
+            new java.sql.Date(tanggalKembalis.get(0).getTime()),
+            "pinjam"
+        );
+
+        if (mainTransaksi.addMultipleTransaksi(barangIds, tanggalPinjams, tanggalKembalis)) {
+            JOptionPane.showMessageDialog(this, "Transaksi berhasil disimpan!");
+            new InvoicePeminjamanForm(new ArrayList<>(), 
+                String.valueOf(currentMember.getMemberID()), 
+                currentMember.getName()).setVisible(true);
+            this.dispose();
+        }
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this, "Gagal menyimpan transaksi: " + e.getMessage());
     }
 }
+
     private String getBarangIDByName(String namaBarang) {
     try (Connection conn = DatabaseConnection.getConnection()) {
         String query = "SELECT inventoryid FROM inventory WHERE nama_barang = ?";

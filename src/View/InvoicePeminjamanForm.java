@@ -26,12 +26,7 @@ public class InvoicePeminjamanForm extends javax.swing.JFrame {
         tampilkanData();
     }
 
-    private void tampilkanData() {
-    if (idMember == null || idMember.isEmpty()) {
-        System.out.println("ID Member kosong!");
-        return;
-    }
-
+   private void tampilkanData() {
     DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
     model.setRowCount(0);
 
@@ -40,39 +35,27 @@ public class InvoicePeminjamanForm extends javax.swing.JFrame {
                       "FROM transaksi t " +
                       "JOIN member m ON t.id_member = m.memberid " + 
                       "JOIN inventory i ON t.id_barang = i.inventoryid " +
-                      "WHERE t.id_member = ? AND t.status = 'pinjam'";
+                      "WHERE t.id_member = ? AND t.status = 'pinjam' " +
+                      "ORDER BY t.id_transaksi"; // Group by transaction ID
         
-        try (PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, idMember);
-            ResultSet rs = stmt.executeQuery();
-            
-            // Format untuk menampilkan tanggal
-            SimpleDateFormat displayFormat = new SimpleDateFormat("dd-MM-yyyy");
-            
-            while (rs.next()) {
-                // Ambil tanggal sebagai Date object
-                java.sql.Date tglPeminjaman = rs.getDate("tgl_peminjaman");
-                java.sql.Date tglPengembalian = rs.getDate("tgl_pengembalian");
-                
-                // Format tanggal ke string dengan format yang benar
-                String formattedTglPeminjaman = displayFormat.format(tglPeminjaman);
-                String formattedTglPengembalian = displayFormat.format(tglPengembalian);
-                
-                model.addRow(new Object[]{
-                    rs.getString("id_transaksi"),
-                    rs.getString("nama_member"),
-                    formattedTglPeminjaman,
-                    formattedTglPengembalian,
-                    rs.getString("nama_barang")
-                });
-            }
+        PreparedStatement stmt = conn.prepareStatement(query);
+        stmt.setString(1, idMember);
+        ResultSet rs = stmt.executeQuery();
+        
+        SimpleDateFormat displayFormat = new SimpleDateFormat("dd-MM-yyyy");
+        
+        while (rs.next()) {
+            model.addRow(new Object[]{
+                rs.getString("id_transaksi"),
+                rs.getString("nama_member"),
+                displayFormat.format(rs.getDate("tgl_peminjaman")),
+                displayFormat.format(rs.getDate("tgl_pengembalian")),
+                rs.getString("nama_barang")
+            });
         }
     } catch (SQLException e) {
         e.printStackTrace();
-        JOptionPane.showMessageDialog(this, 
-            "Error: " + e.getMessage(), 
-            "Database Error", 
-            JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
     }
 }
 

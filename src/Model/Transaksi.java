@@ -9,7 +9,7 @@ import java.text.SimpleDateFormat;
 
 public class Transaksi {
     private int id_transaksi;
-    private String id_member;
+    private int id_member;
     private String id_barang; 
     private Date tgl_peminjaman;
     private Date tgl_pengembalian;
@@ -23,20 +23,21 @@ public class Transaksi {
         private static String currentDate = "";
         private static int currentSequence = 0;
         
-        public static int generateUniqueTransaksiID() {
+        public static int generateUniqueTransaksiID(boolean isNewTransaction) {
             synchronized (lock) {
-                String today = DATE_FORMAT.format(new Date());
-                
-                if (!today.equals(currentDate)) {
-                    currentDate = today;
-                    currentSequence = getLastSequenceFromDB(today);
+                if (isNewTransaction) {
+                    String today = DATE_FORMAT.format(new Date());
+                    
+                    if (!today.equals(currentDate)) {
+                        currentDate = today;
+                        currentSequence = getLastSequenceFromDB(today);
+                    }
+                    
+                    currentSequence++;
+                    if (currentSequence > 999) {
+                        throw new RuntimeException("Sequence limit exceeded for today");
+                    }
                 }
-                
-                currentSequence++;
-                if (currentSequence > 999) {
-                    throw new RuntimeException("Sequence limit exceeded for today");
-                }
-                
                 return Integer.parseInt(currentDate + String.format("%03d", currentSequence));
             }
         }
@@ -64,11 +65,10 @@ public class Transaksi {
         }
     }
 
-    public Transaksi() {
-    }
+    public Transaksi() {}
 
-    public Transaksi(String id_member, String id_barang, Date tgl_peminjaman, Date tgl_pengembalian, String status) {
-        this.id_transaksi = TransactionSequenceGenerator.generateUniqueTransaksiID();
+    public Transaksi(int id_member, String id_barang, Date tgl_peminjaman, Date tgl_pengembalian, String status) {
+        this.id_transaksi = TransactionSequenceGenerator.generateUniqueTransaksiID(true);
         this.id_member = id_member;
         this.id_barang = id_barang;
         this.tgl_peminjaman = tgl_peminjaman;
@@ -76,6 +76,7 @@ public class Transaksi {
         this.status = status;
     }
 
+    // Getter dan Setter untuk setiap field
     public int getId_transaksi() {
         return id_transaksi;
     }
@@ -84,11 +85,11 @@ public class Transaksi {
         this.id_transaksi = id_transaksi;
     }
 
-    public String getId_member() {
+    public int getId_member() {
         return id_member;
     }
 
-    public void setId_member(String id_member) {
+    public void setId_member(int id_member) {
         this.id_member = id_member;
     }
 
@@ -132,25 +133,66 @@ public class Transaksi {
         this.tgl_dikembalikan = tgl_dikembalikan;
     }
 
-    public boolean addTransaksi() {
+    public boolean addMultipleTransaksi(List<String> barangIds, List<Date> tanggalPinjams, List<Date> tanggalKembalis) {
+    try (Connection connection = DatabaseConnection.getConnection()) {
+        connection.setAutoCommit(false);
+        
+        String query = "INSERT INTO transaksi (id_transaksi, id_member, id_barang, tgl_peminjaman, tgl_pengembalian, status) VALUES (?, ?, ?, ?, ?, ?)";
+        
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            // Use single transaction ID for all items
+            this.id_transaksi = TransactionSequenceGenerator.generateUniqueTransaksiID(true);
+            
+            for (int i = 0; i < barangIds.size(); i++) {
+                statement.setInt(1, this.id_transaksi);
+                statement.setInt(2, this.id_member);
+                statement.setString(3, barangIds.get(i));
+                statement.setDate(4, new java.sql.Date(tanggalPinjams.get(i).getTime()));
+                statement.setDate(5, new java.sql.Date(tanggalKembalis.get(i).getTime()));
+                statement.setString(6, "pinjam");
+                statement.addBatch();
+            }
+            
+            statement.executeBatch();
+            connection.commit();
+            return true;
+        } catch (SQLException e) {
+            connection.rollback();
+            if (e instanceof BatchUpdateException) {
+                // Handle case where item is already borrowed
+                throw new SQLException("Barang sudah dipinjam");
+            }
+            throw e;
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+        return false;
+    }
+}
+
+    public static List<Transaksi> getTransaksiByIdTransaksi(int idTransaksi) {
+        List<Transaksi> transaksiList = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getConnection()) {
-            String query = "INSERT INTO transaksi (id_transaksi, id_member, id_barang, tgl_peminjaman, tgl_pengembalian, status) " +
-                          "VALUES (?, ?, ?, ?, ?, ?)";
-            
+            String query = "SELECT * FROM transaksi WHERE id_transaksi = ?";
             PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setInt(1, this.id_transaksi);
-            stmt.setString(2, this.id_member);
-            stmt.setString(3, this.id_barang);
-            stmt.setDate(4, new java.sql.Date(this.tgl_peminjaman.getTime()));
-            stmt.setDate(5, new java.sql.Date(this.tgl_pengembalian.getTime()));
-            stmt.setString(6, this.status);
+            stmt.setInt(1, idTransaksi);
+            ResultSet rs = stmt.executeQuery();
             
-            return stmt.executeUpdate() > 0;
-            
+            while (rs.next()) {
+                Transaksi transaksi = new Transaksi();
+                transaksi.setId_transaksi(rs.getInt("id_transaksi"));
+                transaksi.setId_member(rs.getInt("id_member"));
+                transaksi.setId_barang(rs.getString("id_barang"));
+                transaksi.setTgl_peminjaman(rs.getDate("tgl_peminjaman"));
+                transaksi.setTgl_pengembalian(rs.getDate("tgl_pengembalian"));
+                transaksi.setTgl_dikembalikan(rs.getDate("tgl_dikembalikan"));
+                transaksi.setStatus(rs.getString("status"));
+                transaksiList.add(transaksi);
+            }
         } catch (SQLException e) {
             e.printStackTrace();
-            return false;
         }
+        return transaksiList;
     }
 
     public static List<Transaksi> getAllTransaksi() {
@@ -163,7 +205,7 @@ public class Transaksi {
             while (rs.next()) {
                 Transaksi transaksi = new Transaksi();
                 transaksi.setId_transaksi(rs.getInt("id_transaksi"));
-                transaksi.setId_member(rs.getString("id_member"));
+                transaksi.setId_member(rs.getInt("id_member"));
                 transaksi.setId_barang(rs.getString("id_barang"));
                 transaksi.setTgl_peminjaman(rs.getDate("tgl_peminjaman"));
                 transaksi.setTgl_pengembalian(rs.getDate("tgl_pengembalian"));
@@ -194,7 +236,7 @@ public class Transaksi {
         try (Connection conn = DatabaseConnection.getConnection()) {
             String query = "SELECT name FROM member WHERE memberid = ?";
             PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, this.id_member);
+            stmt.setInt(1, this.id_member);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 return rs.getString("name");

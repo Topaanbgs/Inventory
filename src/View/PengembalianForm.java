@@ -98,7 +98,9 @@ public class PengembalianForm extends javax.swing.JFrame {
         TransaksiPengembalian transaksi = new TransaksiPengembalian(idTransaksi);
         
         Date tglDikembalikan = new Date();
-        boolean success = transaksi.prosesKembali(tglDikembalikan);
+
+        String idBarang = transaksi.getId_barang();
+        boolean success = transaksi.prosesKembaliParsial(idBarang, tglDikembalikan);
         
         if (success) {
             String updateBarang = "UPDATE inventory SET status = 'available' " +
@@ -220,7 +222,7 @@ public class PengembalianForm extends javax.swing.JFrame {
 
             },
             new String [] {
-                "ID Transaksi", "Nama", "Tanggal Peminjaman", "Tanggal Pengembalian"
+                "ID Transaksi", "Nama", "Nama Barang", "Tanggal Pengembalian"
             }
         ) {
             Class[] types = new Class [] {

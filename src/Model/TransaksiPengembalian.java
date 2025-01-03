@@ -12,16 +12,16 @@ import Controller.DatabaseConnection;
 public class TransaksiPengembalian extends Transaksi {
     private static final double DENDA_PER_HARI = 5000.0;
     private double totalDenda = 0.0;
-    
-    public TransaksiPengembalian(String id_member, String id_barang, 
+
+    public TransaksiPengembalian(int id_member, String id_barang, 
                                 Date tgl_peminjaman, Date tgl_pengembalian, 
                                 String status) {
         super(id_member, id_barang, tgl_peminjaman, tgl_pengembalian, status);
         validateDates(tgl_peminjaman, tgl_pengembalian);
     }
-    
+
     public TransaksiPengembalian(int id_transaksi) {
-        super(null, null, null, null, "kembali");
+        super(0, null, null, null, "kembali");  // id_member diatur ke 0 untuk memastikan ID valid
         if (id_transaksi <= 0) {
             throw new IllegalArgumentException("ID transaksi tidak valid");
         }
@@ -49,12 +49,12 @@ public class TransaksiPengembalian extends Transaksi {
         String query = "SELECT t.*, d.jml_denda FROM transaksi t " +
                       "LEFT JOIN denda d ON t.id_transaksi = d.id_transaksi " +
                       "WHERE t.id_transaksi = ?";
-                      
+
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
-            
+
             stmt.setInt(1, getId_transaksi());
-            
+
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     loadDataFromResultSet(rs);
@@ -68,7 +68,7 @@ public class TransaksiPengembalian extends Transaksi {
     }
 
     private void loadDataFromResultSet(ResultSet rs) throws SQLException {
-        setId_member(rs.getString("id_member"));
+        setId_member(rs.getInt("id_member"));  // Menggunakan int untuk id_member
         setId_barang(rs.getString("id_barang"));
         setTgl_peminjaman(rs.getDate("tgl_peminjaman"));
         setTgl_pengembalian(rs.getDate("tgl_pengembalian"));
@@ -80,7 +80,7 @@ public class TransaksiPengembalian extends Transaksi {
     private void calculateDenda() {
         Date tglDikembalikan = getTgl_dikembalikan();
         Date tglPengembalian = getTgl_pengembalian();
-        
+
         if (tglDikembalikan == null || tglPengembalian == null) {
             totalDenda = 0.0;
             return;
@@ -95,37 +95,52 @@ public class TransaksiPengembalian extends Transaksi {
         }
     }
 
-    public boolean prosesKembali(Date tgl_dikembalikan) {
-        if (tgl_dikembalikan == null) {
+    public boolean prosesKembaliParsial(String idBarang, Date tglDikembalikan) {
+        if (tglDikembalikan == null) {
             throw new IllegalArgumentException("Tanggal pengembalian tidak boleh kosong");
         }
-        
+
         Date tglSekarang = new Date();
-        if (tgl_dikembalikan.after(tglSekarang)) {
+        if (tglDikembalikan.after(tglSekarang)) {
             throw new IllegalArgumentException("Tanggal pengembalian tidak boleh melebihi tanggal sekarang");
         }
 
-        setTgl_dikembalikan(tgl_dikembalikan);
+        setTgl_dikembalikan(tglDikembalikan);
         setStatus("kembali");
         calculateDenda();
-        return updateTransaksiPengembalian();
+
+        return updateTransaksiPengembalianParsial(idBarang);
     }
 
-    private boolean updateTransaksiPengembalian() {
+    private boolean updateTransaksiPengembalianParsial(String idBarang) {
         Connection conn = null;
         try {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
-            
-            boolean success = updateTransaksiStatus(conn) && insertDendaIfNeeded(conn);
-            
+
+            String updateQuery = "UPDATE transaksi SET status = ?, tgl_dikembalikan = ? " +
+                                 "WHERE id_transaksi = ? AND id_barang = ?";
+
+            PreparedStatement stmt = conn.prepareStatement(updateQuery);
+            stmt.setString(1, getStatus());
+            stmt.setDate(2, new java.sql.Date(getTgl_dikembalikan().getTime()));
+            stmt.setInt(3, getId_transaksi());
+            stmt.setString(4, idBarang);
+
+            boolean success = stmt.executeUpdate() > 0;
+
+            if (success && totalDenda > 0) {
+                success &= insertDendaIfNeeded(conn);
+            }
+
             if (success) {
                 conn.commit();
-                return true;
             } else {
                 conn.rollback();
-                return false;
             }
+
+            return success;
+
         } catch (SQLException e) {
             try {
                 if (conn != null) conn.rollback();
@@ -142,14 +157,29 @@ public class TransaksiPengembalian extends Transaksi {
         }
     }
 
-    private boolean updateTransaksiStatus(Connection conn) throws SQLException {
-        String updateQuery = "UPDATE transaksi SET status = ?, tgl_dikembalikan = ? WHERE id_transaksi = ?";
-        try (PreparedStatement stmt = conn.prepareStatement(updateQuery)) {
-            stmt.setString(1, getStatus());
-            stmt.setDate(2, new java.sql.Date(getTgl_dikembalikan().getTime()));
-            stmt.setInt(3, getId_transaksi());
-            return stmt.executeUpdate() > 0;
+    public static List<TransaksiPengembalian> getAllReturnedItems(int idTransaksi) {
+        List<TransaksiPengembalian> transaksiList = new ArrayList<>();
+        String query = "SELECT * FROM transaksi WHERE id_transaksi = ? AND status = 'kembali'";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            stmt.setInt(1, idTransaksi);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                try {
+                    TransaksiPengembalian transaksi = new TransaksiPengembalian(rs.getInt("id_transaksi"));
+                    transaksiList.add(transaksi);
+                } catch (RuntimeException e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error fetching returned items: " + e.getMessage(), e);
         }
+
+        return transaksiList;
     }
 
     private boolean insertDendaIfNeeded(Connection conn) throws SQLException {
@@ -167,11 +197,11 @@ public class TransaksiPengembalian extends Transaksi {
     public static List<TransaksiPengembalian> getAllTransaksiKembali() {
         List<TransaksiPengembalian> transaksiList = new ArrayList<>();
         String query = "SELECT id_transaksi FROM transaksi WHERE status = 'kembali'";
-        
+
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query);
              ResultSet rs = stmt.executeQuery()) {
-            
+
             while (rs.next()) {
                 try {
                     TransaksiPengembalian transaksi = new TransaksiPengembalian(rs.getInt("id_transaksi"));
@@ -183,7 +213,7 @@ public class TransaksiPengembalian extends Transaksi {
         } catch (SQLException e) {
             throw new RuntimeException("Error fetching transaksi kembali: " + e.getMessage(), e);
         }
-        
+
         return transaksiList;
     }
 
