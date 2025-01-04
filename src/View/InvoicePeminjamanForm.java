@@ -36,7 +36,7 @@ public class InvoicePeminjamanForm extends javax.swing.JFrame {
                       "JOIN member m ON t.id_member = m.memberid " + 
                       "JOIN inventory i ON t.id_barang = i.inventoryid " +
                       "WHERE t.id_member = ? AND t.status = 'pinjam' " +
-                      "ORDER BY t.id_transaksi"; // Group by transaction ID
+                      "ORDER BY t.id_transaksi";
         
         PreparedStatement stmt = conn.prepareStatement(query);
         stmt.setString(1, idMember);

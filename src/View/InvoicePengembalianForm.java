@@ -44,10 +44,10 @@ public class InvoicePengembalianForm extends javax.swing.JFrame {
     
     try {
         if (transaksi != null && returnedItems != null) {
-            // Show returned items from current transaction
             String sql = """
                 SELECT t.id_transaksi, m.name, i.nama_barang, 
-                       t.tgl_dikembalikan, COALESCE(d.jml_denda, 0) as jml_denda
+                       t.tgl_dikembalikan, t.tgl_pengembalian,
+                       COALESCE(d.jml_denda, 0) as jml_denda
                 FROM transaksi t 
                 JOIN member m ON t.id_member = m.memberid 
                 JOIN inventory i ON t.id_barang = i.inventoryid
@@ -62,11 +62,15 @@ public class InvoicePengembalianForm extends javax.swing.JFrame {
                     
                     try (ResultSet rs = ps.executeQuery()) {
                         if (rs.next()) {
+                            Date returnDate = rs.getDate("tgl_dikembalikan");
+                            Date dueDate = rs.getDate("tgl_pengembalian");
+                            String lateDays = calculateLateDays(returnDate, dueDate);
+                            
                             model.addRow(new Object[]{
                                 rs.getInt("id_transaksi"),
                                 rs.getString("name"),
                                 namaBarang,
-                                dateFormat.format(rs.getDate("tgl_dikembalikan")),
+                                lateDays,
                                 rs.getDouble("jml_denda")
                             });
                         }
@@ -74,36 +78,56 @@ public class InvoicePengembalianForm extends javax.swing.JFrame {
                 }
             }
         } else {
-                String sql = """
-                    SELECT t.id_transaksi, m.name, i.nama_barang, 
-                           t.tgl_dikembalikan, d.jml_denda
-                    FROM transaksi t 
-                    JOIN member m ON t.id_member = m.memberid 
-                    JOIN inventory i ON t.id_barang = i.inventoryid
-                    LEFT JOIN denda d ON t.id_transaksi = d.id_transaksi
-                    WHERE t.status = 'kembali'
-                    ORDER BY t.tgl_dikembalikan DESC""";
+            String sql = """
+                SELECT t.id_transaksi, m.name, i.nama_barang, 
+                       t.tgl_dikembalikan, t.tgl_pengembalian,
+                       d.jml_denda
+                FROM transaksi t 
+                JOIN member m ON t.id_member = m.memberid 
+                JOIN inventory i ON t.id_barang = i.inventoryid
+                LEFT JOIN denda d ON t.id_transaksi = d.id_transaksi
+                WHERE t.status = 'kembali'
+                ORDER BY t.tgl_dikembalikan DESC""";
                 
-                try (PreparedStatement ps = conn.prepareStatement(sql);
-                     ResultSet rs = ps.executeQuery()) {
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                
+                while (rs.next()) {
+                    Date returnDate = rs.getDate("tgl_dikembalikan");
+                    Date dueDate = rs.getDate("tgl_pengembalian");
+                    String lateDays = calculateLateDays(returnDate, dueDate);
                     
-                    while (rs.next()) {
-                        model.addRow(new Object[]{
-                            rs.getInt("id_transaksi"),
-                            rs.getString("name"),
-                            rs.getString("nama_barang"),
-                            dateFormat.format(rs.getDate("tgl_dikembalikan")),
-                            rs.getDouble("jml_denda")
-                        });
-                    }
+                    model.addRow(new Object[]{
+                        rs.getInt("id_transaksi"),
+                        rs.getString("name"),
+                        rs.getString("nama_barang"),
+                        lateDays,
+                        rs.getDouble("jml_denda")
+                    });
                 }
             }
-        } catch (SQLException e) {
+        }
+    } catch (SQLException e) {
         JOptionPane.showMessageDialog(this, 
             "Error: " + e.getMessage(), 
             "Error", 
             JOptionPane.ERROR_MESSAGE);
     }
+}
+
+private String calculateLateDays(Date returnDate, Date dueDate) {
+    if (returnDate == null || dueDate == null) {
+        return "0 hari";
+    }
+    
+    long diff = returnDate.getTime() - dueDate.getTime();
+    long days = diff / (24 * 60 * 60 * 1000);
+    
+    if (days <= 0) {
+        return "Tepat Waktu";
+    }
+    
+    return days + " hari";
 }
     
     public void closeConnection() {
@@ -167,7 +191,7 @@ public class InvoicePengembalianForm extends javax.swing.JFrame {
 
             },
             new String [] {
-                "ID Transaksi", "Nama", "Nama Barang", "Tanggal Dikembalikan", "Denda"
+                "ID Transaksi", "Nama", "Nama Barang", "Keterlambatan", "Denda"
             }
         ) {
             Class[] types = new Class [] {

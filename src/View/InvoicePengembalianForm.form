@@ -115,7 +115,7 @@
                 <Column editable="true" title="ID Transaksi" type="java.lang.Integer"/>
                 <Column editable="true" title="Nama" type="java.lang.String"/>
                 <Column editable="true" title="Nama Barang" type="java.lang.String"/>
-                <Column editable="true" title="Tanggal Dikembalikan" type="java.lang.String"/>
+                <Column editable="true" title="Keterlambatan" type="java.lang.String"/>
                 <Column editable="true" title="Denda" type="java.lang.Float"/>
               </Table>
             </Property>

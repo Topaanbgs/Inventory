@@ -110,7 +110,6 @@ public boolean prosesKembaliParsial(String idBarang, Date tglDikembalikan) {
         throw new IllegalArgumentException("Tanggal pengembalian tidak boleh melebihi tanggal sekarang");
     }
 
-    // Get specific item's return date
     String sqlGetTglPengembalian = """
         SELECT tgl_pengembalian 
         FROM transaksi 

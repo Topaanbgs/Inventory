@@ -128,7 +128,6 @@ public class PengembalianForm extends javax.swing.JFrame {
                         if (success) {
                             returnedItems.add(namaBarang);
                             
-                            // Ambil denda spesifik untuk barang ini
                             String sqlGetDenda = """
                                 SELECT COALESCE(jml_denda, 0) as denda 
                                 FROM denda 

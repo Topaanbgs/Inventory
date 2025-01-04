@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package View;
 
 import Model.Member;
@@ -312,7 +308,6 @@ private void saveTransactions(DefaultTableModel model) {
     try {
         SimpleDateFormat displayFormat = new SimpleDateFormat("yyyy-MM-dd");
         
-        // Collect all items
         for (int i = 0; i < model.getRowCount(); i++) {
             String tanggalPinjamStr = (String) model.getValueAt(i, 0);
             String tanggalKembaliStr = (String) model.getValueAt(i, 1);
@@ -323,7 +318,6 @@ private void saveTransactions(DefaultTableModel model) {
                 throw new SQLException("Nama barang tidak valid!");
             }
             
-            // Check if item is already borrowed
             if (Transaksi.isBarangAlreadyLoaned(idBarang)) {
                 throw new SQLException("Barang " + namaBarang + " sedang dipinjam!");
             }
@@ -333,7 +327,6 @@ private void saveTransactions(DefaultTableModel model) {
             tanggalKembalis.add(displayFormat.parse(tanggalKembaliStr));
         }
 
-        // Create single transaction for all items
         Transaksi mainTransaksi = new Transaksi(
             currentMember.getMemberID(),
             barangIds.get(0),

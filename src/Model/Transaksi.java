@@ -76,7 +76,6 @@ public class Transaksi {
         this.status = status;
     }
 
-    // Getter dan Setter untuk setiap field
     public int getId_transaksi() {
         return id_transaksi;
     }
@@ -140,7 +139,6 @@ public class Transaksi {
         String query = "INSERT INTO transaksi (id_transaksi, id_member, id_barang, tgl_peminjaman, tgl_pengembalian, status) VALUES (?, ?, ?, ?, ?, ?)";
         
         try (PreparedStatement statement = connection.prepareStatement(query)) {
-            // Use single transaction ID for all items
             this.id_transaksi = TransactionSequenceGenerator.generateUniqueTransaksiID(true);
             
             for (int i = 0; i < barangIds.size(); i++) {
@@ -159,7 +157,6 @@ public class Transaksi {
         } catch (SQLException e) {
             connection.rollback();
             if (e instanceof BatchUpdateException) {
-                // Handle case where item is already borrowed
                 throw new SQLException("Barang sudah dipinjam");
             }
             throw e;
