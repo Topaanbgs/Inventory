@@ -5,12 +5,14 @@ import Model.Member;
 import Model.TransaksiPengembalian;
 import java.sql.*;
 import java.text.SimpleDateFormat;
+import java.util.List;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
 public class InvoicePengembalianForm extends javax.swing.JFrame {
     private Connection conn;
     private TransaksiPengembalian transaksi;
+    private List<String> returnedItems;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
     
     public InvoicePengembalianForm() {
@@ -30,25 +32,48 @@ public class InvoicePengembalianForm extends javax.swing.JFrame {
         }
     }
     
-    public void setTransaksi(TransaksiPengembalian transaksi) {
+    public void setTransaksi(TransaksiPengembalian transaksi, List<String> returnedItems) {
         this.transaksi = transaksi;
+        this.returnedItems = returnedItems;
         loadInvoiceData();
     }
     
     private void loadInvoiceData() {
-        DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
-        model.setRowCount(0);
-        
-        try {
-            if (transaksi != null) {
-                model.addRow(new Object[]{
-                    transaksi.getId_transaksi(),
-                    transaksi.getNamaMember(),
-                    transaksi.getNamaBarang(),
-                    dateFormat.format(transaksi.getTgl_dikembalikan()),
-                    transaksi.getTotalDenda()
-                });
-            } else {
+    DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
+    model.setRowCount(0);
+    
+    try {
+        if (transaksi != null && returnedItems != null) {
+            // Show returned items from current transaction
+            String sql = """
+                SELECT t.id_transaksi, m.name, i.nama_barang, 
+                       t.tgl_dikembalikan, COALESCE(d.jml_denda, 0) as jml_denda
+                FROM transaksi t 
+                JOIN member m ON t.id_member = m.memberid 
+                JOIN inventory i ON t.id_barang = i.inventoryid
+                LEFT JOIN denda d ON t.id_transaksi = d.id_transaksi 
+                    AND t.id_barang = d.id_barang
+                WHERE t.id_transaksi = ? AND i.nama_barang = ?""";
+                
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                for (String namaBarang : returnedItems) {
+                    ps.setInt(1, transaksi.getId_transaksi());
+                    ps.setString(2, namaBarang);
+                    
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            model.addRow(new Object[]{
+                                rs.getInt("id_transaksi"),
+                                rs.getString("name"),
+                                namaBarang,
+                                dateFormat.format(rs.getDate("tgl_dikembalikan")),
+                                rs.getDouble("jml_denda")
+                            });
+                        }
+                    }
+                }
+            }
+        } else {
                 String sql = """
                     SELECT t.id_transaksi, m.name, i.nama_barang, 
                            t.tgl_dikembalikan, d.jml_denda
@@ -74,12 +99,12 @@ public class InvoicePengembalianForm extends javax.swing.JFrame {
                 }
             }
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, 
-                "Error: " + e.getMessage(), 
-                "Error", 
-                JOptionPane.ERROR_MESSAGE);
-        }
+        JOptionPane.showMessageDialog(this, 
+            "Error: " + e.getMessage(), 
+            "Error", 
+            JOptionPane.ERROR_MESSAGE);
     }
+}
     
     public void closeConnection() {
         try {
@@ -196,7 +221,7 @@ public class InvoicePengembalianForm extends javax.swing.JFrame {
 
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
         Member currentMember = Member.getLoggedInMember();
-        new PeminjamanForm(currentMember).setVisible(true);
+        new PengembalianForm(currentMember).setVisible(true);
         this.dispose();
     }//GEN-LAST:event_jButton4ActionPerformed
 

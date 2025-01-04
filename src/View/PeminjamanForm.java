@@ -280,7 +280,7 @@ DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
 
     if (tanggalPinjam.after(tanggalKembali)) {
         JOptionPane.showMessageDialog(this, 
-            "Tanggal peminjaman tidak boleh lebih besar dari tanggal pengembalian!", 
+            "Tanggal pengembalian tidak boleh sebelum tanggal peminjaman!", 
             "Error", 
             JOptionPane.ERROR_MESSAGE);
         return;

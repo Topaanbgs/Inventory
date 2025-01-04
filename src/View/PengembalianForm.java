@@ -4,7 +4,9 @@ import Controller.DatabaseConnection;
 import Model.Member;
 import Model.TransaksiPengembalian;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
@@ -16,6 +18,7 @@ public class PengembalianForm extends javax.swing.JFrame {
         initComponents();
         this.memberID = String.valueOf(member.getMemberID());
         connectToDatabase();
+        jTable2.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
     }
     
     private void connectToDatabase() {
@@ -39,7 +42,8 @@ public class PengembalianForm extends javax.swing.JFrame {
         }
         
         String sql = """
-            SELECT t.id_transaksi, m.name, t.tgl_peminjaman, t.tgl_pengembalian, i.nama_barang
+            SELECT t.id_transaksi, m.name, t.tgl_peminjaman, t.tgl_pengembalian, 
+                   i.nama_barang, i.inventoryid, t.id_barang
             FROM transaksi t
             JOIN member m ON t.id_member = m.memberid
             JOIN inventory i ON t.id_barang = i.inventoryid
@@ -55,20 +59,23 @@ public class PengembalianForm extends javax.swing.JFrame {
                 DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
                 model.setRowCount(0);
                 
-                if (rs.next()) {
+                boolean foundAny = false;
+                
+                while (rs.next()) {
+                    foundAny = true;
                     String namaMember = rs.getString("name");
                     String namaBarang = rs.getString("nama_barang");
-                    Date tanggalPinjam = rs.getDate("tgl_peminjaman");
                     Date tanggalKembali = rs.getDate("tgl_pengembalian");
                     
                     model.addRow(new Object[]{
                         idTransaksi, 
                         namaMember, 
                         namaBarang,
-                        tanggalPinjam, 
                         tanggalKembali
                     });
-                } else {
+                }
+                
+                if (!foundAny) {
                     JOptionPane.showMessageDialog(this, 
                         "Transaksi tidak ditemukan atau bukan milik Anda.", 
                         "Info", 
@@ -81,58 +88,81 @@ public class PengembalianForm extends javax.swing.JFrame {
     }
 
     private void confirmReturn() {
-    int selectedRow = jTable2.getSelectedRow();
-    if (selectedRow == -1) {
+    int[] selectedRows = jTable2.getSelectedRows();
+    if (selectedRows.length == 0) {
         JOptionPane.showMessageDialog(this, 
-            "Pilih transaksi terlebih dahulu.", 
+            "Pilih barang yang akan dikembalikan terlebih dahulu.", 
             "Warning", 
             JOptionPane.WARNING_MESSAGE);
         return;
     }
 
-    int idTransaksi = Integer.parseInt((String) jTable2.getValueAt(selectedRow, 0));
-    
     try {
         conn.setAutoCommit(false);
         
-        TransaksiPengembalian transaksi = new TransaksiPengembalian(idTransaksi);
-        
+        String idTransaksi = jTable2.getValueAt(selectedRows[0], 0).toString();
+        TransaksiPengembalian transaksi = new TransaksiPengembalian(Integer.parseInt(idTransaksi));
         Date tglDikembalikan = new Date();
-
-        String idBarang = transaksi.getId_barang();
-        boolean success = transaksi.prosesKembaliParsial(idBarang, tglDikembalikan);
         
-        if (success) {
-            String updateBarang = "UPDATE inventory SET status = 'available' " +
-                                "WHERE inventoryid = ?";
-            try (PreparedStatement ps = conn.prepareStatement(updateBarang)) {
-                ps.setString(1, transaksi.getId_barang());
-                ps.executeUpdate();
+        List<String> returnedItems = new ArrayList<>();
+        double totalDenda = 0.0;
+        
+        for (int selectedRow : selectedRows) {
+            String namaBarang = jTable2.getValueAt(selectedRow, 2).toString();
+            
+            String sqlGetBarang = """
+                SELECT t.id_barang, t.tgl_pengembalian 
+                FROM transaksi t 
+                JOIN inventory i ON t.id_barang = i.inventoryid 
+                WHERE t.id_transaksi = ? AND i.nama_barang = ?""";
+                
+            try (PreparedStatement ps = conn.prepareStatement(sqlGetBarang)) {
+                ps.setString(1, idTransaksi);
+                ps.setString(2, namaBarang);
+                
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        String idBarang = rs.getString("id_barang");
+                        boolean success = transaksi.prosesKembaliParsial(idBarang, tglDikembalikan);
+                        
+                        if (success) {
+                            returnedItems.add(namaBarang);
+                            
+                            // Ambil denda spesifik untuk barang ini
+                            String sqlGetDenda = """
+                                SELECT COALESCE(jml_denda, 0) as denda 
+                                FROM denda 
+                                WHERE id_transaksi = ? AND id_barang = ?""";
+                                
+                            try (PreparedStatement psDenda = conn.prepareStatement(sqlGetDenda)) {
+                                psDenda.setString(1, idTransaksi);
+                                psDenda.setString(2, idBarang);
+                                try (ResultSet rsDenda = psDenda.executeQuery()) {
+                                    if (rsDenda.next()) {
+                                        totalDenda += rsDenda.getDouble("denda");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            
-            conn.commit();
-            
-            if (transaksi.getTotalDenda() > 0) {
-                String message = String.format("Barang berhasil dikembalikan.\n" +
-                                             "Terdapat denda keterlambatan sebesar: Rp %.2f", 
-                                             transaksi.getTotalDenda());
-                JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(this, 
-                    "Barang berhasil dikembalikan.", 
-                    "Success", 
-                    JOptionPane.INFORMATION_MESSAGE);
-            }
-            
-            InvoicePengembalianForm invoiceForm = new InvoicePengembalianForm();
-            invoiceForm.setTransaksi(transaksi);
-            invoiceForm.setVisible(true); 
-            this.dispose();
-            
-            ((DefaultTableModel) jTable2.getModel()).setRowCount(0);
-        } else {
-            throw new SQLException("Gagal memproses pengembalian");
         }
+        
+        conn.commit();
+        
+        if (totalDenda > 0) {
+            String message = String.format("Barang berhasil dikembalikan.\n" +
+                                 "Total denda keterlambatan: Rp %.2f", totalDenda);
+            JOptionPane.showMessageDialog(this, message);
+        } else {
+            JOptionPane.showMessageDialog(this, "Barang berhasil dikembalikan.");
+        }
+        
+        InvoicePengembalianForm invoiceForm = new InvoicePengembalianForm();
+        invoiceForm.setTransaksi(transaksi, returnedItems);
+        invoiceForm.setVisible(true);
+        this.dispose();
         
     } catch (SQLException e) {
         try {
