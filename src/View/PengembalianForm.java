@@ -3,6 +3,8 @@ package View;
 import Controller.DatabaseConnection;
 import Model.Member;
 import Model.TransaksiPengembalian;
+import java.awt.Color;
+import java.awt.Dimension;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Date;
@@ -16,6 +18,13 @@ public class PengembalianForm extends javax.swing.JFrame {
     
     public PengembalianForm(Member member) {
         initComponents();
+        
+        getContentPane().setBackground(new Color(242, 242, 242));
+        setResizable(false);
+        setLocationRelativeTo(null);
+        
+        setMinimumSize(new Dimension(400, 300));
+        
         this.memberID = String.valueOf(member.getMemberID());
         connectToDatabase();
         jTable2.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);

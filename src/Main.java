@@ -1,16 +1,20 @@
 import View.LoginForm;
-import View.RegisterForm;
-import View.PeminjamanForm;
-import View.InvoicePeminjamanForm;
-import View.InvoicePeminjamanForm;
-import Model.Member;
-
 import javax.swing.*;
 
 public class Main {
     public static void main(String[] args) {
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
         SwingUtilities.invokeLater(() -> {
-            new LoginForm().setVisible(true);
+                LoginForm loginForm = new LoginForm();           
+                loginForm.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                loginForm.setLocationRelativeTo(null);
+                loginForm.pack();
+                loginForm.setVisible(true);
         });
     }
 }

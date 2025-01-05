@@ -3,6 +3,8 @@ package View;
 import Controller.DatabaseConnection;
 import Model.Member;
 import Model.TransaksiPengembalian;
+import java.awt.Color;
+import java.awt.Dimension;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -17,6 +19,13 @@ public class InvoicePengembalianForm extends javax.swing.JFrame {
     
     public InvoicePengembalianForm() {
         initComponents();
+        
+        getContentPane().setBackground(new Color(242, 242, 242));
+        setResizable(false);
+        setLocationRelativeTo(null);
+        
+        setMinimumSize(new Dimension(400, 300));
+        
         connectToDatabase();
         loadInvoiceData();
     }

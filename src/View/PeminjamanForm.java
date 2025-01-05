@@ -4,6 +4,8 @@ import Model.Member;
 import Controller.DatabaseConnection;
 import static Model.Member.getLoggedInMember;
 import Model.Transaksi;
+import java.awt.Color;
+import java.awt.Dimension;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.sql.*;
@@ -22,6 +24,13 @@ public class PeminjamanForm extends javax.swing.JFrame {
     
     public PeminjamanForm(Member member) {
         initComponents();
+        
+        getContentPane().setBackground(new Color(242, 242, 242));
+        setResizable(false);
+        setLocationRelativeTo(null);
+        
+        setMinimumSize(new Dimension(400, 300));
+
         this.currentMember = member;
         updateWelcomeMessage();
     }

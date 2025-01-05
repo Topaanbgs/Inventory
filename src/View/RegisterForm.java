@@ -2,6 +2,8 @@ package View;
 
 import Controller.DatabaseConnection;
 import Model.Member;
+import java.awt.Color;
+import java.awt.Dimension;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -20,6 +22,12 @@ public class RegisterForm extends javax.swing.JFrame {
      */
     public RegisterForm() {
         initComponents();
+        
+        getContentPane().setBackground(new Color(242, 242, 242));
+        setResizable(false);
+        setLocationRelativeTo(null);
+        
+        setMinimumSize(new Dimension(400, 300));
     }
     /**
      * This method is called from within the constructor to initialize the form.

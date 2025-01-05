@@ -1,6 +1,8 @@
 package View;
 
 import Model.Member;
+import java.awt.Color;
+import java.awt.Dimension;
 import java.sql.SQLException;
 import javax.swing.JOptionPane;
 
@@ -15,6 +17,12 @@ public class LoginForm extends javax.swing.JFrame {
      */
     public LoginForm() {
         initComponents();
+        
+        getContentPane().setBackground(new Color(242, 242, 242));
+        setResizable(false);
+        setLocationRelativeTo(null);
+        
+        setMinimumSize(new Dimension(400, 300));
     }
     
     /**
