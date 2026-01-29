@@ -15,7 +15,7 @@
 - **Language:** Java (JDK 17+)
 - **GUI Framework:** Java Swing / AWT
 - **IDE:** Apache NetBeans IDE 23
-- **Database:** MySQL / SQLite (Sesuaikan dengan yang kamu pakai)
+- **Database:** MySQL
 - **Architecture:** Object-Oriented Programming (Inheritance, Encapsulation, Polymorphism)
 
 ---
